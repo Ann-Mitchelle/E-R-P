@@ -7,12 +7,12 @@ class QuickActionTile extends StatelessWidget {
   final String route;
 
   const QuickActionTile({
-    Key? key,
+    super.key,
     required this.title,
     required this.icon,
     required this.color,
     required this.route,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

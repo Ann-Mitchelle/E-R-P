@@ -6,15 +6,17 @@ class CustomTextField extends StatelessWidget {
   final IconData? icon;
   final bool obscureText;
   final TextInputType keyboardType;
+  final Widget? suffixIcon; // Add suffix icon
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.hintText,
     this.icon,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
-  }) : super(key: key);
+    this.suffixIcon, // Accept suffix icon
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +26,7 @@ class CustomTextField extends StatelessWidget {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         prefixIcon: icon != null ? Icon(icon) : null,
+        suffixIcon: suffixIcon, // Display the eye icon
         hintText: hintText,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         filled: true,

@@ -1,83 +1,202 @@
+import 'dart:convert';
+import 'package:final_year_project/screens/widgets/custom_button.dart';
+import 'package:final_year_project/screens/widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
-  bool _obscureText = true;
+  bool _isLoading = false;
+   bool _obscureText = true; 
+
+  Future<void> _login() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showSnackbar("Please enter email and password");
+      setState(() {
+        _isLoading = false;
+      });
+      return;
+    }
+
+    var url = Uri.parse(
+      "https://sanerylgloann.co.ke/EmployeeManagement/login.php",
+    ); // Replace with your actual API URL
+    var response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password}),
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body);
+
+      if (data["status"] == "success") {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString("emp_no", data["user"]["emp_no"]);
+        await prefs.setString("email", data["user"]["email"]);
+        await prefs.setString("firstname", data["user"]["firstname"]);
+        await prefs.setString("role", data["user"]["role"]);
+
+        if (_rememberMe) {
+          await prefs.setBool("rememberMe", true);
+        } else {
+          await prefs.remove("rememberMe");
+        }
+
+        _showSnackbar("Login Successful");
+
+        // Navigate to respective dashboard based on role
+        if (data["user"]["role"] == "admin") {
+          Navigator.pushReplacementNamed(context, '/admin_dashboard');
+        } else {
+          Navigator.pushReplacementNamed(context, '/employee_dashboard');
+        }
+      } else {
+        _showSnackbar(data["message"]);
+      }
+    } else {
+      _showSnackbar("Server error, please try again");
+    }
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('App Name')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text("Welcome to StaffEase"),
+        centerTitle: true,
+        backgroundColor: Colors.blue,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            SizedBox(height: 20.0),
-            Center(child: Image.asset('assets/logo.png', height: 100.0)),
-            SizedBox(height: 20.0),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 20.0),
-            TextField(
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureText ? Icons.visibility : Icons.visibility_off,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureText = !_obscureText;
-                    });
-                  },
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Logo
+            Center(
+              child: ClipOval(
+                child: Image.asset(
+                  'assets/images/image.png',
+                  height: 150,
+                  width: 150,
+                  fit: BoxFit.cover,
                 ),
               ),
-              obscureText: _obscureText,
             ),
-            SizedBox(height: 10.0),
+            const SizedBox(height: 20),
+
+            // Welcome Text
+            const Text(
+              "Welcome Back!",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Subtitle Text
+            const Text(
+              "Please login to your account",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 20),
+
+            // Email Input
+            CustomTextField(
+              controller: _emailController,
+              hintText: "Enter your email",
+              icon: Icons.email,
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 15),
+
+            // Password Input
+            CustomTextField(
+              controller: _passwordController,
+              hintText: "Enter your password",
+              icon: Icons.lock,
+              obscureText: _obscureText,
+              suffixIcon: IconButton(
+              icon: Icon(
+                _obscureText ? Icons.visibility : Icons.visibility_off,
+              ),
+              onPressed: () {
+                setState(() {
+                _obscureText = !_obscureText;
+                });
+              },
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Remember Me & Forgot Password Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
+              children: [
                 Row(
-                  children: <Widget>[
+                  children: [
                     Checkbox(
                       value: _rememberMe,
                       onChanged: (value) {
                         setState(() {
-                          _rememberMe = value!;
+                          _rememberMe = value ?? false;
                         });
                       },
+                      activeColor: Colors.blue,
                     ),
-                    Text('Remember Me'),
+                    const Text("Remember Me", style: TextStyle(fontSize: 14)),
                   ],
                 ),
-                TextButton(
-                  onPressed: () {
-                    // Handle forgot password
+                GestureDetector(
+                  onTap: () {
+                    // TODO: Implement Forgot Password
                   },
-                  child: Text('Forgot Password?'),
+                  child: const Text(
+                    "Forgot Password?",
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
-            SizedBox(height: 20.0),
-            ElevatedButton(
-              onPressed: () {
-                // Handle login
-              },
-              child: Text('Login'),
-            ),
+            const SizedBox(height: 20),
+
+            // Login Button
+            _isLoading
+                ? CircularProgressIndicator()
+                : CustomButton(text: "Login", onPressed: _login),
           ],
         ),
       ),

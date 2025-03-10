@@ -7,12 +7,12 @@ class QuickStatisticsCard extends StatelessWidget {
   final Color color;
 
   const QuickStatisticsCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.count,
     required this.icon,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
