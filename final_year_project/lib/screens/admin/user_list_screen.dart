@@ -26,6 +26,7 @@ class _UserListScreenState extends State<UserListScreen> {
   Future<void> _fetchUsers() async {
     try {
       List<User> users = await _userService.getAllUsers();
+      print("Fetched users: $users");
       setState(() {
         _users = users;
         _filteredUsers = users; // Initially, show all users
@@ -109,7 +110,7 @@ class _UserListScreenState extends State<UserListScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder:
-                                      (context) => UserDetailScreen(empNo: ''),
+                                      (context) => UserDetailsScreen(empNo: ''),
                                 ),
                               );
                             },

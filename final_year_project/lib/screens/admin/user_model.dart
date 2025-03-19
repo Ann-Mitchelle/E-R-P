@@ -1,5 +1,7 @@
+import 'package:final_year_project/screens/admin/dependant_model.dart';
+
 class User {
-  String? id; // Optional, assigned by backend
+  String? emp_no; // Optional, assigned by backend
   String firstName;
   String secondName;
   String email;
@@ -8,10 +10,11 @@ class User {
   String role;
   String image; // Image URL from backend
   String status;
-  String password;
+  String? password;
+  List<Dependant> dependants;
 
   User({
-    this.id, // Optional
+    this.emp_no, // Optional
     required this.firstName,
     required this.secondName,
     required this.email,
@@ -20,7 +23,8 @@ class User {
     required this.role,
     required this.image,
     required this.status,
-    required this.password,
+    this.password,
+    required this.dependants,
   });
 
   // Convert User object to Map (Include image if available)
@@ -34,15 +38,17 @@ class User {
       'role': role,
       'status': status,
       'password': password, // ⚠️ Consider removing if not sending raw passwords
+
       if (image.isNotEmpty)
         'image': image, // Include only if image is not empty
+      'dependants': dependants.map((dep) => dep.toMap()).toList(),
     };
   }
 
   // Convert JSON response from backend to a User object
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id']?.toString() ?? "", // Ensure it's a string
+      emp_no: json['emp_no']?.toString() ?? "", // Ensure it's a string
       firstName: json['firstname'] ?? "",
       secondName: json['secondname'] ?? "",
       email: json['email'] ?? "",
@@ -54,6 +60,11 @@ class User {
       status: json['status'] ?? "",
       password:
           "", // ⚠️ Do not store passwords in frontend objects for security
+      dependants:
+          (json['dependants'] as List<dynamic>?)
+              ?.map((dep) => Dependant.fromJson(dep))
+              .toList() ??
+          [],
     );
   }
 }
