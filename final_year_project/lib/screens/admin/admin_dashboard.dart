@@ -1,5 +1,5 @@
 import 'package:final_year_project/screens/admin/home_screen.dart';
-import 'package:final_year_project/screens/admin/user_list_screen.dart';
+import 'package:final_year_project/screens/admin/training/training_dashboard.dart';
 import 'package:final_year_project/screens/admin/user_management.dart';
 import 'package:final_year_project/screens/jobs/job_dashboard.dart';
 import 'package:final_year_project/screens/leave_management/leave_dashboard.dart';
@@ -20,6 +20,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     UserManagementDashboardScreen(), // Now loads User Registration Screen
     LeaveDashboard(),
     JobAdDashboard(),
+    TrainingDashboard(),
     //InventoryManagementScreen(),
     // LeaveManagementScreen(),
     // NotificationsScreen(),

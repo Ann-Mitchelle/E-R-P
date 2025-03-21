@@ -79,28 +79,37 @@ class UserService {
   // ✅ Fetch User by Employee Number
   Future<User> getUserByEmpNo(String empNo) async {
     try {
-      final response = await http.post(
-        Uri.parse("$baseUrl/get_user.php"),
-        body: {'emp_no': empNo},
+      final url =
+          "https://sanerylgloann.co.ke/EmployeeManagement/get_user.php?emp_no=$empNo";
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {"Accept": "application/json"},
       );
+
+      print("Fetching user from: $url");
+
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
-        if (jsonResponse["status"] == "success") {
-          return User.fromJson(jsonResponse["data"]);
-        } else {
-          throw Exception(jsonResponse["message"]);
+
+        if (jsonResponse.containsKey("error")) {
+          throw Exception("Server Error: ${jsonResponse["error"]}");
         }
+
+        return User.fromJson(jsonResponse);
       } else {
-        throw Exception("Failed to load user");
+        throw Exception(
+          "Server responded with status code: ${response.statusCode}",
+        );
       }
     } catch (e) {
       throw Exception("Error fetching user: $e");
     }
   }
 
-  // ✅ Update User (With Optional Image)
- Future<String> updateUser(User user, String? password) async {
+  Future<String> updateUser(User user, String? password) async {
     Map<String, dynamic> data = {
       "emp_no": user.emp_no,
       "firstName": user.firstName,
