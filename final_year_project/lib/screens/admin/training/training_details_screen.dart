@@ -46,6 +46,7 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
 
     if (confirmDelete) {
       bool success = await ApiTrainingService.deleteTraining(widget.trainingId);
+      print("Delete API Response: $success");
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Training deleted successfully")),

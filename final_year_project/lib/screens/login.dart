@@ -17,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _rememberMe = false;
   bool _isLoading = false;
-   bool _obscureText = true; 
+  bool _obscureText = true;
 
   Future<void> _login() async {
     setState(() {
@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Navigate to respective dashboard based on role
         if (data["user"]["role"] == "admin") {
-          Navigator.pushReplacementNamed(context, '/admin_dashboard');
+          Navigator.pushReplacementNamed(context, "/admin_dashboard");
         } else {
           Navigator.pushReplacementNamed(context, '/employee_dashboard');
         }
@@ -147,14 +147,14 @@ class _LoginScreenState extends State<LoginScreen> {
               icon: Icons.lock,
               obscureText: _obscureText,
               suffixIcon: IconButton(
-              icon: Icon(
-                _obscureText ? Icons.visibility : Icons.visibility_off,
-              ),
-              onPressed: () {
-                setState(() {
-                _obscureText = !_obscureText;
-                });
-              },
+                icon: Icon(
+                  _obscureText ? Icons.visibility : Icons.visibility_off,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _obscureText = !_obscureText;
+                  });
+                },
               ),
             ),
             const SizedBox(height: 10),

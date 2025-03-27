@@ -29,29 +29,66 @@ class ApiTrainingService {
     required String startDate,
     required String endDate,
     required String location,
+    required String duration,
+     required List<String> participants, 
   }) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/update_training.php"),
-      body: {
-        "training_id": trainingId,
-        "title": title,
-        "description": description,
-        "start_date": startDate,
-        "end_date": endDate,
-        "location": location,
-      },
-    );
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/update_training.php"),
+         headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: {
+          "training_id": trainingId,
+          "title": title,
+          "description": description,
+          "start_date": startDate,
+          "end_date": endDate,
+          "location": location,
+          "duration": duration,
+           "participants": participants,
+        },
+      );
 
-    return response.statusCode == 200 && jsonDecode(response.body)['success'];
+      // Debugging
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        if (responseData.containsKey("success") &&
+            responseData["success"] == true) {
+          return true;
+        } else {
+          print("API Error: ${responseData['error']}");
+          return false;
+        }
+      } else {
+        print("Server Error: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("Network Error: $e");
+      return false;
+    }
   }
 
   // Delete Training
   static Future<bool> deleteTraining(String trainingId) async {
     final response = await http.post(
-      Uri.parse("$baseUrl/delete_training.php"),
-      body: {"training_id": trainingId},
+      Uri.parse(
+        "https://sanerylgloann.co.ke/EmployeeManagement/delete_training.php",
+      ),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"id": trainingId}),
     );
 
-    return response.statusCode == 200 && jsonDecode(response.body)['success'];
+    print("API Response Code: ${response.statusCode}");
+    print("API Response Body: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['success']; // Ensure backend returns success: true
+    }
+    return false;
   }
 }
