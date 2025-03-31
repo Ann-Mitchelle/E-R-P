@@ -37,7 +37,7 @@ class JobDetailPage extends StatelessWidget {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Job deleted successfully")));
-        Navigator.pop(context, true); // Go back and refresh job list
+        Navigator.pop(context, true); 
       } else {
         ScaffoldMessenger.of(
           context,

@@ -108,6 +108,18 @@ class UserService {
       throw Exception("Error fetching user: $e");
     }
   }
+  Future<void> fetchUserData(String empNo) async {
+    try {
+      UserService userService = UserService();
+      User user = await userService.getUserByEmpNo(empNo);
+
+      print("Employee Number: ${user.emp_no}");
+      print("Name: ${user.firstName} ${user.secondName}");
+    } catch (e) {
+      print("Error fetching user data: $e");
+    }
+  }
+
 
   Future<String> updateUser(User user, String? password) async {
     Map<String, dynamic> data = {

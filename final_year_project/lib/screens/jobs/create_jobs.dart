@@ -186,9 +186,11 @@ class _AddJobAdvertisementState extends State<AddJobAdvertisement> {
                   child: ElevatedButton(
                     onPressed: _submitForm,
                     child: Text("Add Job Advertisement"),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      textStyle: TextStyle(fontSize: 16),
+                   
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue, // Set background color
+                        foregroundColor: Colors.white, // Text color
+                      
                     ),
                   ),
                 ),

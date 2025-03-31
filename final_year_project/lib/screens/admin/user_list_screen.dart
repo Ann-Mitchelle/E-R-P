@@ -110,7 +110,9 @@ class _UserListScreenState extends State<UserListScreen> {
                                 context,
                                 MaterialPageRoute(
                                   builder:
-                                      (context) => UserDetailsScreen(empNo: ''),
+                                      (context) => UserDetailsScreen(
+                                        empNo: user.emp_no.toString(),
+                                      ),
                                 ),
                               );
                             },

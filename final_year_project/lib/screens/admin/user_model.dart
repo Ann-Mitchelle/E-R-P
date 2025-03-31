@@ -14,7 +14,7 @@ class User {
   List<Dependant> dependants;
 
   User({
-    this.emp_no, // Optional
+    this.emp_no, 
     required this.firstName,
     required this.secondName,
     required this.email,

@@ -119,7 +119,14 @@ class _EditJobPageState extends State<EditJobPage> {
                 decoration: InputDecoration(labelText: "Deadline"),
               ),
               SizedBox(height: 20),
-              ElevatedButton(onPressed: _updateJob, child: Text("Update Job")),
+              ElevatedButton(
+               
+                onPressed: _updateJob, 
+                 style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue, 
+                  foregroundColor: Colors.white,
+                ),
+                child: Text("Update Job")),
             ],
           ),
         ),

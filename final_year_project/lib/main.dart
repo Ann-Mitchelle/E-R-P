@@ -25,15 +25,15 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/', // Define the default route
       routes: {
+        // '/': (context) => AdminDashboard(),
         '/': (context) => LoginScreen(),
         "/admin_dashboard": (context) => AdminDashboard(),
         "/add_ad": (context) => AddJobAdvertisement(),
         "/view_jobs": (context) => ViewJobsPage(),
         "/employee_dashboard": (context) => EmployeeDashboard(),
-        "/leave_application": (context) => ApplyLeaveScreen(),
+        "/leave_application": (context) => LeaveApplicationScreen(),
 
         //'/admin_dashboard':(context) => AdminDashboard(),
-        // Pass email argument
       },
     );
   }

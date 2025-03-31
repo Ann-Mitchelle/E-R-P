@@ -60,13 +60,15 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Profile Image
           Center(
             child: CircleAvatar(
               radius: 50,
               backgroundImage:
                   _user!.image.isNotEmpty
-                      ? NetworkImage(_user!.image)
+                      ? NetworkImage(
+                        "https://sanerylgloann.co.ke/EmployeeManagement/user_images/" +
+                            _user!.image,
+                      )
                       : const AssetImage("assets/default_user.png")
                           as ImageProvider,
             ),

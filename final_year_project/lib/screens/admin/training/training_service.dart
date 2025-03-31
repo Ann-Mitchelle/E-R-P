@@ -11,7 +11,7 @@ class ApiTrainingService {
     final response = await http.get(
       Uri.parse("$baseUrl/get_training_details.php?id=$trainingId"),
     );
-
+    print(response.body);
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       if (data['success'] && data.containsKey('training')) {
@@ -30,12 +30,12 @@ class ApiTrainingService {
     required String endDate,
     required String location,
     required String duration,
-     required List<String> participants, 
+    required List<String> participants,
   }) async {
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/update_training.php"),
-         headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
         body: {
           "training_id": trainingId,
           "title": title,
@@ -44,13 +44,14 @@ class ApiTrainingService {
           "end_date": endDate,
           "location": location,
           "duration": duration,
-           "participants": participants,
+          "participants": participants,
         },
       );
 
       // Debugging
       print("Response Status Code: ${response.statusCode}");
       print("Response Body: ${response.body}");
+      print(response.body);
 
       final Map<String, dynamic> responseData = jsonDecode(response.body);
 

@@ -91,6 +91,18 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                 SizedBox(height: 10),
                 Text("Location: ${training.location}"),
                 SizedBox(height: 20),
+                if (training.participants.isNotEmpty)
+                  //Text("Participants: ${training.participants[0]}"),
+                  SizedBox(
+                    height: 100,
+                    child: ListView.builder(
+                      itemBuilder:
+                          (context, index) =>
+                              Text(training.participants[index]),
+                      itemCount: training.participants.length,
+                    ),
+                  ),
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
