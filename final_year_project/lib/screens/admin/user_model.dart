@@ -12,6 +12,10 @@ class User {
   String status;
   String? password;
   List<Dependant> dependants;
+  int?annual;
+  int? sick;
+  int?maternity;
+  int? paternity;
 
   User({
     this.emp_no, 
@@ -25,6 +29,10 @@ class User {
     required this.status,
     this.password,
     required this.dependants,
+    this.annual,
+    this.sick,
+    this.maternity,
+    this.paternity,
   });
 
   // Convert User object to Map (Include image if available)
@@ -42,6 +50,10 @@ class User {
       if (image.isNotEmpty)
         'image': image, // Include only if image is not empty
       'dependants': dependants.map((dep) => dep.toMap()).toList(),
+      'annual': annual,
+      'sick': sick,
+      'maternity': maternity,
+      'paternity': paternity,
     };
   }
 
@@ -65,6 +77,10 @@ class User {
               ?.map((dep) => Dependant.fromJson(dep))
               .toList() ??
           [],
+      annual: json['annual'] ?? "",
+      sick: json['sick'],
+      maternity: json['maternity'],
+      paternity: json['paternity'],
     );
   }
 }

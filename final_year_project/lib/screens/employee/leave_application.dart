@@ -1,15 +1,14 @@
-
 import 'package:final_year_project/screens/admin/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum LeaveType { annual, sick, maternity, paternity }
 
 class LeaveApplicationScreen extends StatefulWidget {
-  
   @override
   _LeaveApplicationScreenState createState() => _LeaveApplicationScreenState();
 }
@@ -24,25 +23,71 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
   int? _leaveDuration;
   bool _isSubmitting = false; // Loading indicator
 
-  Map<String, int> leaveBalances = {
-    "annual": 30,
-    "sick": 14,
-    "maternity": 90,
+  Map<String, int?> leaveBalances = {
+    "Annual": 30,
+    "Sick": 14,
+    "Maternity": 90,
     "paternity": 14,
   };
- 
-  
-
+  String? empNo;
   @override
   void initState() {
     super.initState();
-    _fetchLeaveBalances();
-    
-  
+    _loadEmployeeData();
+    // _fetchLeaveBalances(empNo);
   }
 
+  Future<void> _loadEmployeeData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      empNo = prefs.getString("emp_no");
+    });
+
+    if (empNo != null) {
+      _fetchLeaveBalances(empNo!);
+    }
+  }
+
+  Future<void> _fetchLeaveBalances(String empNo) async {
+    try {
+      UserService userService = UserService();
+
+      // Fetch the leave balances
+      Map<String, int?> balances = await userService.getLeaveBalances(empNo);
+
+      // Update the state with the fetched leave balances
+      setState(() {
+        leaveBalances = balances;
+      });
+    } catch (e) {
+      // Handle any errors that occur during the API request
+      print("Error fetching leave balances: $e");
+      _showErrorS("Failed to load leave balances");
+    }
+  }
+
+  // Show error message
+  void _showErrorS(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Error"),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
   // Fetch leave balances from API
-  void _fetchLeaveBalances() async {
+  /*void _fetchLeaveBalances() async {
     final url = Uri.parse(
       "https://sanerylgloann.co.ke/EmployeeManagement/get_leave_balances.php",
     );
@@ -56,29 +101,23 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
         },
       );
 
-      print("Response Body: ${response.body}"); // Debugging
-
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        print("Parsed JSON: $jsonResponse"); // Debugging
+        // Debugging
 
         if (jsonResponse["success"] == 1) {
           List<dynamic> leaveData = jsonResponse["leave_balances"];
-          print("Leave Data: $leaveData"); // Debugging
+          // Debugging
 
           if (leaveData.isNotEmpty) {
             setState(() {
               leaveBalances = {
-                "annual":
-                    int.tryParse(leaveData[0]["Annual"].toString()) ?? 0,
-                "sick":
-                    int.tryParse(leaveData[0]["Sick"].toString()) ?? 0,
+                "annual": int.tryParse(leaveData[0]["Annual"].toString()) ?? 0,
+                "sick": int.tryParse(leaveData[0]["Sick"].toString()) ?? 0,
                 "maternity":
-                    int.tryParse(leaveData[0]["Maternity"].toString()) ??
-                    0,
+                    int.tryParse(leaveData[0]["Maternity"].toString()) ?? 0,
                 "paternity":
-                    int.tryParse(leaveData[0]["paternity"].toString()) ??
-                    0,
+                    int.tryParse(leaveData[0]["paternity"].toString()) ?? 0,
               };
             });
           }
@@ -91,8 +130,7 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
     } catch (e) {
       _showError("Error fetching data: $e");
     }
-  }
-
+  }*/
 
   void _pickDate(BuildContext context, bool isStartDate) async {
     DateTime now = DateTime.now();
@@ -162,7 +200,7 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
       ),
     );
 
-    request.fields['emp_no'] = "EMP001"; // Replace with actual employee ID
+    request.fields['emp_no'] = "PPP0002"; // Replace with actual employee ID
     request.fields['leave_type'] =
         _selectedLeaveType.toString().split('.').last;
     request.fields['start_date'] = _startDate.toString();
@@ -179,9 +217,20 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
     try {
       var response = await request.send();
       var responseData = await response.stream.bytesToString();
+
+      // ✅ Print response for debugging
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Body: $responseData");
+
+      // ✅ Check if response is HTML (error page)
+      if (responseData.trim().startsWith('<')) {
+        _showError(
+          "Server returned an HTML response. Check API URL or server error.",
+        );
+        return;
+      }
+
       var jsonResponse = jsonDecode(responseData);
-      print("Response: $response.body");
-      print("Response status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
         _showSuccess(jsonResponse["message"]);
@@ -228,8 +277,9 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               ...leaveBalances.entries.map(
-                (entry) =>
-                    Text("${entry.key.toUpperCase()}: ${entry.value} days"),
+                (entry) => Text(
+                  "${entry.key.toUpperCase()}: ${entry.value ?? 0} days",
+                ),
               ),
               SizedBox(height: 16),
 

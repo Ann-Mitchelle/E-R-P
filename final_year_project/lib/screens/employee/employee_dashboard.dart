@@ -29,10 +29,10 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
         _navigateTo(context, "/leave_application");
         break;
       case 2:
-        _navigateTo(context, "/training_notifications");
+        _navigateTo(context, "/training");
         break;
       case 3:
-        _navigateTo(context, "/job_notifications");
+        _navigateTo(context, "/jobs");
         break;
       case 4:
         _navigateTo(context, "/applications");

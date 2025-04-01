@@ -108,6 +108,7 @@ class UserService {
       throw Exception("Error fetching user: $e");
     }
   }
+
   Future<void> fetchUserData(String empNo) async {
     try {
       UserService userService = UserService();
@@ -117,6 +118,45 @@ class UserService {
       print("Name: ${user.firstName} ${user.secondName}");
     } catch (e) {
       print("Error fetching user data: $e");
+    }
+  }
+
+  Future<Map<String, int?>> getLeaveBalances(String empNo) async {
+    try {
+      final url = "$baseUrl/get_leave_balances.php?emp_no=$empNo";
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {"Accept": "application/json"},
+      );
+
+      print("Fetching leave balances from: $url");
+      print("Response Status Code: ${response.statusCode}");
+      print("Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        var jsonResponse = jsonDecode(response.body);
+
+        if (jsonResponse.containsKey("error")) {
+          throw Exception("Server Error: ${jsonResponse["error"]}");
+        }
+
+        // Extract the leave balances from the first item in the leave_balances list
+        var leaveData = jsonResponse["leave_balances"][0];
+
+        // ✅ Return the leave balances
+        return {
+          "Annual": leaveData["Annual"],
+          "Sick": leaveData["Sick"],
+          "Maternity": leaveData["Maternity"],
+          "Paternity": leaveData["paternity"], // Fixed capitalization issue
+        };
+      } else {
+        throw Exception(
+          "Server responded with status code: ${response.statusCode}",
+        );
+      }
+    } catch (e) {
+      throw Exception("Error fetching leave balances: $e");
     }
   }
 
