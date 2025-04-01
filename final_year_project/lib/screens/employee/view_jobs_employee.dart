@@ -1,5 +1,6 @@
 import 'package:final_year_project/screens/employee/job_application_screen.dart';
 import 'package:final_year_project/screens/jobs/job_model.dart';
+import 'package:final_year_project/screens/jobs/job_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert'; // Assuming the Job model is in job_model.dart
@@ -15,24 +16,54 @@ class _JobsScreenState extends State<JobsScreen> {
   @override
   void initState() {
     super.initState();
-    futureJobs = fetchAvailableJobs();
+    // futureJobs = fetchAvailableJobs();
+    futureJobs = _fetchJobs();
   }
 
   // Fetch available jobs
-  Future<List<Job>> fetchAvailableJobs() async {
-    final response = await http.get(
-      Uri.parse('https://sanerylgloann.co.ke/EmployeeManagement/get_jobs.php'),
-    );
+  /*Future<List<Job>> fetchAvailableJobs() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://sanerylgloann.co.ke/EmployeeManagement/get_jobs.php',
+        ),
+      );
 
-    if (response.statusCode == 200) {
-      // Assuming the API returns a JSON object with a 'data' key containing the job list
-      final Map<String, dynamic> responseData = json.decode(response.body);
-      final List<dynamic> jobsData =
-          responseData['data']; // Extract the 'data' list
-      return jobsData.map((item) => Job.fromJson(item)).toList();
-    } else {
-      throw Exception('Failed to load jobs');
+      // Check if the response status code is 200 (successful)
+      if (response.statusCode == 200) {
+        // Check if the response body is not null or empty
+        if (response.body.isNotEmpty) {
+          final Map<String, dynamic> responseData = json.decode(response.body);
+
+          // Ensure that 'data' exists and is a list
+          if (responseData.containsKey('data') &&
+              responseData['data'] is List) {
+            final List<dynamic> jobsData = responseData['data'];
+
+            // Map the list of jobs to the Job model
+            return jobsData.map((item) => Job.fromJson(item)).toList();
+          } else {
+            throw Exception(
+              'Invalid data format: "data" key is missing or not a list.',
+            );
+          }
+        } else {
+          throw Exception('Empty response body.');
+        }
+      } else {
+        throw Exception(
+          'Failed to load jobs, status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      // Catch and print any errors
+      print('Error occurred: $e');
+      throw Exception('Failed to load jobs: $e');
     }
+  }*/
+  Future<List<Job>> _fetchJobs() async {
+    final jobList = await ApiJobsService.fetchJobs();
+    return jobList.map((jobData) => Job.fromJson(jobData)).toList();
   }
 
   // Show job details in a popup
