@@ -1,5 +1,11 @@
-import 'package:final_year_project/screens/jobs/job_model.dart';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:final_year_project/screens/jobs/job_model.dart';
 
 class JobApplicationScreen extends StatefulWidget {
   final Job job;
@@ -12,41 +18,154 @@ class JobApplicationScreen extends StatefulWidget {
 
 class _JobApplicationScreenState extends State<JobApplicationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _resumeController = TextEditingController();
+  final _applicationTextController = TextEditingController();
+
+  String fullName = "";
+  String email = "";
+  String empNo = "";
+
+  PlatformFile? resumeFile;
+  PlatformFile? supportingDocumentFile;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _resumeController.dispose();
+    _applicationTextController.dispose();
     super.dispose();
   }
 
-  // Simulating form submission
-  void submitApplication() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // Submit job application
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
+  // Load user data from SharedPreferences
+  Future<void> _loadUserData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      String firstName = prefs.getString('firstname') ?? '';
+      String secondName = prefs.getString('secondname') ?? '';
+      print("Retrieved First Name: $firstName");
+      print("Retrieved Second Name: $secondName");
+
+      fullName = "$firstName $secondName"; // Concatenate first and last name
+      email = prefs.getString('email') ?? 'Unknown';
+      empNo = prefs.getString('emp_no') ?? '';
+    });
+  }
+
+  // File Picker
+  Future<void> pickFile(String fileType) async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        withData: kIsWeb, // Ensures we get `bytes` on Web
+      );
+
+      if (result != null) {
+        setState(() {
+          if (fileType == "resume") {
+            resumeFile = result.files.single;
+          } else if (fileType == "supporting_document") {
+            supportingDocumentFile = result.files.single;
+          }
+        });
+      } else {
+        print('File selection canceled');
+      }
+    } catch (e) {
+      print('Error selecting file: $e');
+    }
+  }
+
+  // Submit Application
+  // Submit Application
+  Future<void> submitApplication() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      var uri = Uri.parse(
+        'https://sanerylgloann.co.ke/EmployeeManagement/submit_application.php',
+      );
+      var request = http.MultipartRequest('POST', uri);
+
+      request.fields['jobno'] = widget.job.jobNo.toString();
+      request.fields['emp_no'] = empNo;
+      request.fields['full_name'] = fullName; // Add the full name field here
+      request.fields['application_text'] = _applicationTextController.text;
+
+      // Attach resume file if selected
+      if (resumeFile != null) {
+        if (kIsWeb) {
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'resume',
+              resumeFile!.bytes!,
+              filename: resumeFile!.name,
+            ),
+          );
+        } else {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'resume',
+              resumeFile!.path!,
+              filename: path.basename(resumeFile!.path!),
+            ),
+          );
+        }
+      }
+
+      // Attach supporting document file if selected
+      if (supportingDocumentFile != null) {
+        if (kIsWeb) {
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'supporting_document',
+              supportingDocumentFile!.bytes!,
+              filename: supportingDocumentFile!.name,
+            ),
+          );
+        } else {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'supporting_document',
+              supportingDocumentFile!.path!,
+              filename: path.basename(supportingDocumentFile!.path!),
+            ),
+          );
+        }
+      }
+
+      var response = await request.send();
+
+      if (response.statusCode == 200) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
               title: Text('Application Submitted'),
               content: Text(
-                'Your application for the job "${widget.job.title}" has been submitted.',
+                'Your application for "${widget.job.title}" has been successfully submitted.',
               ),
-              actions: <Widget>[
+              actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.pop(context); // Go back to the jobs screen
+                    Navigator.pop(context);
+                    Navigator.pop(context);
                   },
                   child: Text('Close'),
                 ),
               ],
-            ),
-      );
+            );
+          },
+        );
+      } else {
+        throw Exception(
+          'Failed to submit application. Status: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error submitting application: $e');
     }
   }
 
@@ -54,7 +173,7 @@ class _JobApplicationScreenState extends State<JobApplicationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Apply for Job'),
+        title: Text('Apply for ${widget.job.title}'),
         backgroundColor: Colors.blue,
       ),
       body: Padding(
@@ -62,43 +181,36 @@ class _JobApplicationScreenState extends State<JobApplicationScreen> {
         child: Form(
           key: _formKey,
           child: Column(
-            children: <Widget>[
-              Text(
-                'Applying for: ${widget.job.title}',
-                style: TextStyle(fontSize: 18),
-              ),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Full Name: $fullName', style: TextStyle(fontSize: 16)),
+              Text('Email: $email', style: TextStyle(fontSize: 16)),
               SizedBox(height: 16),
               TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: 'Full Name'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your name';
-                  }
-                  return null;
-                },
+                controller: _applicationTextController,
+                decoration: InputDecoration(labelText: 'Formal Application'),
+                maxLines: 5,
+                validator:
+                    (value) =>
+                        value!.isEmpty
+                            ? 'Please enter your application text'
+                            : null,
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => pickFile("resume"),
+                child: Text(
+                  resumeFile == null ? 'Upload Resume' : 'Resume Selected',
+                ),
               ),
               SizedBox(height: 8),
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(labelText: 'Email'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 8),
-              TextFormField(
-                controller: _resumeController,
-                decoration: InputDecoration(labelText: 'Resume (Link or File)'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please provide a link or file for your resume';
-                  }
-                  return null;
-                },
+              ElevatedButton(
+                onPressed: () => pickFile("supporting_document"),
+                child: Text(
+                  supportingDocumentFile == null
+                      ? 'Upload Supporting Document'
+                      : 'Document Selected',
+                ),
               ),
               SizedBox(height: 16),
               ElevatedButton(

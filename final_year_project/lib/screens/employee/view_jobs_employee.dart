@@ -2,8 +2,7 @@ import 'package:final_year_project/screens/employee/job_application_screen.dart'
 import 'package:final_year_project/screens/jobs/job_model.dart';
 import 'package:final_year_project/screens/jobs/job_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert'; // Assuming the Job model is in job_model.dart
+ // Assuming the Job model is in job_model.dart
 
 class JobsScreen extends StatefulWidget {
   @override

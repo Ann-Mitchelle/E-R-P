@@ -53,12 +53,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (data["status"] == "success") {
         SharedPreferences prefs = await SharedPreferences.getInstance();
-      
+
         await prefs.setString("emp_no", data["user"]["emp_no"]);
         await prefs.setString("email", data["user"]["email"]);
         await prefs.setString("firstname", data["user"]["firstname"]);
+        await prefs.setString("secondname", data["user"]["secondname"]);
+        await prefs.setString("phonenumber", data["user"]["phonenumber"]);
+        await prefs.setString("department", data["user"]["department"]);
         await prefs.setString("role", data["user"]["role"]);
 
+      
         if (_rememberMe) {
           await prefs.setBool("rememberMe", true);
         } else {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EmployeeDashboard extends StatefulWidget {
   @override
@@ -7,8 +8,26 @@ class EmployeeDashboard extends StatefulWidget {
 }
 
 class _EmployeeDashboardState extends State<EmployeeDashboard> {
-  final String employeeName = "John Doe"; // Replace with actual data
+  String employeeName = "Employee"; // Default if not found
   int _selectedIndex = 0; // For Bottom Navbar
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEmployeeName(); // ✅ Load name on start
+  }
+
+  Future<void> _loadEmployeeName() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String firstName = prefs.getString("firstname") ?? "";
+    String secondName = prefs.getString("secondname") ?? "";
+
+    setState(() {
+      employeeName =
+          "$firstName $secondName"
+              .trim(); // ✅ Concatenate and remove extra spaces
+    });
+  }
 
   String _getFormattedDate() {
     final now = DateTime.now();
@@ -23,8 +42,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
 
     switch (index) {
       case 0:
-        // Home (Stay on Dashboard)
-        break;
+        break; // Stay on Dashboard
       case 1:
         _navigateTo(context, "/leave_application");
         break;
@@ -32,7 +50,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
         _navigateTo(context, "/training");
         break;
       case 3:
-        _navigateTo(context, "/jobs");
+        _navigateTo(context, "/jobNotifications");
         break;
       case 4:
         _navigateTo(context, "/applications");
@@ -40,7 +58,6 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
     }
   }
 
-  // Function for Navigation
   void _navigateTo(BuildContext context, String route) {
     Navigator.pushNamed(context, route);
   }
@@ -52,15 +69,28 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
         backgroundColor: Colors.blueAccent,
         elevation: 0,
         leading: IconButton(
-          icon: const CircleAvatar(
-            backgroundImage: AssetImage(
-              "assets/profile_placeholder.png",
-            ), // Replace with actual profile picture
+          icon: CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.blue.shade100, // Light blue background
+            child: ClipOval(
+              child: Image.asset(
+                "assets/profile_placeholder.png",
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.person,
+                    size: 30,
+                    color: Colors.white,
+                  ); // Default icon
+                },
+              ),
+            ),
           ),
           onPressed: () {
             _navigateTo(context, "/profile");
           },
         ),
+
         title: const Text(
           "Dashboard",
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -73,7 +103,7 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Greeting
+            // ✅ Greeting
             Text(
               "Hello, $employeeName 👋",
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -96,19 +126,18 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
 
             // Grid for Quick Actions
             GridView.count(
-              crossAxisCount: 2, // ✅ 2 columns
+              crossAxisCount: 2,
               crossAxisSpacing: 10,
               mainAxisSpacing: 10,
-              childAspectRatio: 1.2, // Adjust size
-              physics:
-                  const NeverScrollableScrollPhysics(), // Disable scrolling inside GridView
-              shrinkWrap: true, // ✅ Allow GridView to expand based on content
+              childAspectRatio: 1.2,
+              physics: const NeverScrollableScrollPhysics(),
+              shrinkWrap: true,
               children: [
                 _buildQuickAction(
                   context,
                   Icons.assignment,
                   "Apply Leave",
-                  () => _navigateTo(context, "/apply_leave"),
+                  () => _navigateTo(context, "/applyleave"),
                 ),
                 _buildQuickAction(
                   context,
@@ -120,7 +149,13 @@ class _EmployeeDashboardState extends State<EmployeeDashboard> {
                   context,
                   Icons.history,
                   "View Requests",
-                  () => _navigateTo(context, "/view_requests"),
+                  () => _navigateTo(context, "/applications"),
+                ),
+                _buildQuickAction(
+                  context,
+                  Icons.school,
+                  "View applications",
+                  () => _navigateTo(context, "/myApplications"),
                 ),
                 _buildQuickAction(
                   context,

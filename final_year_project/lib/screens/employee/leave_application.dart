@@ -180,8 +180,15 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
     }
 
     int leaveDays = _endDate!.difference(_startDate!).inDays + 1;
-    int maxDays =
-        leaveBalances[_selectedLeaveType.toString().split('.').last] ?? 0;
+    String leaveTypeKey = _selectedLeaveType.toString().split('.').last;
+    leaveTypeKey =
+        leaveTypeKey[0].toUpperCase() +
+        leaveTypeKey.substring(1); // Capitalize first letter
+
+    int maxDays = leaveBalances[leaveTypeKey] ?? 0;
+
+    print("Maximum leave Days: $maxDays");
+    print("Leave Days: $leaveDays");
 
     if (leaveDays > maxDays) {
       _showError("Cannot exceed $maxDays days for this leave type.");
@@ -234,6 +241,9 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
 
       if (response.statusCode == 200) {
         _showSuccess(jsonResponse["message"]);
+        Future.delayed(Duration(seconds: 1), () {
+          Navigator.pop(context);
+        });
       } else {
         _showError("Failed to submit: ${jsonResponse['message']}");
       }
