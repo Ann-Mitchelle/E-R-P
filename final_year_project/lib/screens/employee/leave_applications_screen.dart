@@ -190,6 +190,9 @@ class _LeaveApplicationsScreenState extends State<LeaveApplicationsScreen> {
                                         Text(
                                           'Document: ${application['document_path']}',
                                         ),
+                                      Text(
+                                        'Remarks: ${application['remarks']}',
+                                      ),
                                     ],
                                   ),
                                   actions: <Widget>[

@@ -11,6 +11,7 @@ import 'package:final_year_project/screens/employee/view_job_applications.dart';
 import 'package:final_year_project/screens/employee/view_jobs_employee.dart';
 import 'package:final_year_project/screens/jobs/create_jobs.dart';
 import 'package:final_year_project/screens/jobs/view_jobs.dart';
+import 'package:final_year_project/screens/leave_management/view_requests_admin.dart';
 import 'package:flutter/material.dart';
 import 'package:final_year_project/screens/login.dart';
 
@@ -47,7 +48,7 @@ class MyApp extends StatelessWidget {
         "/jobs": (context) => JobsScreen(),
         "/myApplications": (context) => MyApplicationsPage(), // My Applications
         "/profile": (context) => ProfilePage(), // Profile Screen
-        //'/admin_dashboard':(context) => AdminDashboard(),
+        '/adminLeaveRequests': (context) => AdminLeaveRequestsPage(),
       },
     );
   }

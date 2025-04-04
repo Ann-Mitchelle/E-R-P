@@ -96,7 +96,7 @@ class LeaveDashboard extends StatelessWidget {
                         Icons.pending_actions,
                         Colors.red,
                         context,
-                        "/addEmployee",
+                        "/adminLeaveRequests",
                       ),
                       _buildQuickActionTile(
                         "View approved Requests",

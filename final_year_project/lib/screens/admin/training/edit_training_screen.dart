@@ -45,7 +45,7 @@ class _EditTrainingPageState extends State<EditTrainingScreen> {
     endDate = DateTime.tryParse(widget.training.endDate);
 
     selectedParticipants = List<String>.from(
-      widget.training.participants ?? [],
+      widget.training.participants,
     );
 
     fetchEmployees();

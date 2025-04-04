@@ -160,7 +160,6 @@ class UserService {
     }
   }
 
-
   Future<String> updateUser(User user, String? password) async {
     Map<String, dynamic> data = {
       "emp_no": user.emp_no,
@@ -192,7 +191,9 @@ class UserService {
         List<dynamic> data = jsonDecode(response.body);
         return data.map((json) => User.fromJson(json)).toList();
       } else {
-        throw Exception("Failed to load users");
+        throw Exception(
+          "Failed to load users. Status Code: ${response.statusCode}",
+        );
       }
     } catch (e) {
       throw Exception("Error fetching users: $e");
