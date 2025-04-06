@@ -1,24 +1,24 @@
 import 'package:final_year_project/screens/admin/dependant_model.dart';
 
 class User {
-  String? emp_no; // Optional, assigned by backend
+  String? emp_no;
   String firstName;
   String secondName;
   String email;
   String phoneNumber;
   String department;
   String role;
-  String image; // Image URL from backend
+  String image;
   String status;
   String? password;
   List<Dependant> dependants;
-  int?annual;
+  int? annual;
   int? sick;
-  int?maternity;
+  int? maternity;
   int? paternity;
 
   User({
-    this.emp_no, 
+    this.emp_no,
     required this.firstName,
     required this.secondName,
     required this.email,
@@ -35,7 +35,6 @@ class User {
     this.paternity,
   });
 
-  // Convert User object to Map (Include image if available)
   Map<String, dynamic> toMap() {
     return {
       'firstname': firstName,
@@ -45,10 +44,8 @@ class User {
       'department': department,
       'role': role,
       'status': status,
-      'password': password, // ⚠️ Consider removing if not sending raw passwords
-
-      if (image.isNotEmpty)
-        'image': image, // Include only if image is not empty
+      'password': password,
+      if (image.isNotEmpty) 'image': image,
       'dependants': dependants.map((dep) => dep.toMap()).toList(),
       'annual': annual,
       'sick': sick,
@@ -57,30 +54,37 @@ class User {
     };
   }
 
-  // Convert JSON response from backend to a User object
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      emp_no: json['emp_no']?.toString() ?? "", // Ensure it's a string
+      emp_no: json['emp_no']?.toString() ?? "",
       firstName: json['firstname'] ?? "",
       secondName: json['secondname'] ?? "",
       email: json['email'] ?? "",
-      phoneNumber:
-          json['phonenumber']?.toString() ?? "", // Ensure it's a string
+      phoneNumber: json['phonenumber']?.toString() ?? "",
       department: json['department'] ?? "",
       role: json['role'] ?? "user",
-      image: json['image'] ?? "", // Ensure no null errors
+      image: json['image'] ?? "",
       status: json['status'] ?? "",
-      password:
-          "", // ⚠️ Do not store passwords in frontend objects for security
-      dependants:
-          (json['dependants'] as List<dynamic>?)
-              ?.map((dep) => Dependant.fromJson(dep))
-              .toList() ??
-          [],
-      annual: json['annual'] ?? "",
-      sick: json['sick'],
-      maternity: json['maternity'],
-      paternity: json['paternity'],
+      password: "", // Do not populate passwords from backend for security
+      dependants: _parseDependants(json['dependant']),
+
+      annual: _parseInt(json['annual']),
+      sick: _parseInt(json['sick']),
+      maternity: _parseInt(json['maternity']),
+      paternity: _parseInt(json['paternity']),
     );
+  }
+
+  static int? _parseInt(dynamic value) {
+    if (value == null || value == "") return null;
+    return int.tryParse(value.toString());
+  }
+
+  static List<Dependant> _parseDependants(dynamic value) {
+    if (value == null || value is! List) return [];
+    return value
+        .map((dep) => Dependant.fromJson(dep))
+        .toList()
+        .cast<Dependant>();
   }
 }

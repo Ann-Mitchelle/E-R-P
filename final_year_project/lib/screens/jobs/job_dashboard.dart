@@ -31,7 +31,7 @@ class JobAdDashboard extends StatelessWidget {
               "View Applications",
               Icons.assignment,
               Colors.deepPurple,
-              "/view_applications",
+              "/jobApplications",
             ),
           ],
         ),

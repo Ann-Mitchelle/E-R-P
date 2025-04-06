@@ -10,7 +10,9 @@ class MyApplicationsPage extends StatefulWidget {
 
 class _MyApplicationsPageState extends State<MyApplicationsPage> {
   List<dynamic> applications = [];
-  String? empNo; // ✅ Store emp_no from SharedPreferences
+  List<dynamic> filteredApplications = [];
+  String? empNo;
+  String selectedStatus = "All"; // Store selected status for filtering
 
   @override
   void initState() {
@@ -21,7 +23,7 @@ class _MyApplicationsPageState extends State<MyApplicationsPage> {
   Future<void> _loadEmployeeNumber() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      empNo = prefs.getString("emp_no"); // ✅ Retrieve emp_no
+      empNo = prefs.getString("emp_no");
     });
 
     if (empNo != null) {
@@ -30,7 +32,7 @@ class _MyApplicationsPageState extends State<MyApplicationsPage> {
   }
 
   Future<void> _fetchApplications() async {
-    if (empNo == null) return; // ✅ Ensure emp_no is available
+    if (empNo == null) return;
 
     try {
       final url =
@@ -42,6 +44,7 @@ class _MyApplicationsPageState extends State<MyApplicationsPage> {
         if (jsonData["status"] == "success") {
           setState(() {
             applications = jsonData["applications"];
+            _filterApplications();
           });
         } else {
           throw Exception("Error fetching applications");
@@ -51,6 +54,60 @@ class _MyApplicationsPageState extends State<MyApplicationsPage> {
       }
     } catch (e) {
       print("Error: $e");
+    }
+  }
+
+  void _filterApplications() {
+    setState(() {
+      if (selectedStatus == "All") {
+        filteredApplications = applications;
+      } else {
+        filteredApplications =
+            applications
+                .where(
+                  (app) =>
+                      app['status'].toString().toLowerCase() ==
+                      selectedStatus.toLowerCase(),
+                )
+                .toList();
+      }
+    });
+  }
+
+  Color getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'pending':
+      default:
+        return Colors.orange;
+    }
+  }
+
+  Color getStatusTextColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange[800]!;
+      case 'accepted':
+        return Colors.green[800]!;
+      case 'rejected':
+        return Colors.red[800]!;
+      default:
+        return Colors.black;
+    }
+  }
+
+  IconData getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return Icons.check_circle_outline;
+      case 'rejected':
+        return Icons.cancel_outlined;
+      case 'pending':
+      default:
+        return Icons.hourglass_empty;
     }
   }
 
@@ -142,7 +199,7 @@ class _MyApplicationsPageState extends State<MyApplicationsPage> {
       icon: Icon(Icons.file_present, color: Colors.blue),
       label: Text(label, style: TextStyle(color: Colors.blue)),
       onPressed: () {
-        // Open file logic (Optional: Implement this to allow file downloads)
+        // Optional: Implement file download logic here
       },
     );
   }
@@ -150,18 +207,45 @@ class _MyApplicationsPageState extends State<MyApplicationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("My Applications")),
+      appBar: AppBar(
+        title: Text("My Applications"),
+        actions: [
+          DropdownButton<String>(
+            value: selectedStatus,
+            icon: Icon(Icons.filter_list, color: Colors.orange),
+            dropdownColor: Colors.blue,
+            items:
+                <String>[
+                  'All',
+                  'Pending',
+                  'Approved',
+                  'Rejected',
+                ].map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value, style: TextStyle(color: Colors.black)),
+                  );
+                }).toList(),
+            onChanged: (String? newValue) {
+              setState(() {
+                selectedStatus = newValue!;
+                _filterApplications(); // Filter applications based on the selected status
+              });
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: EdgeInsets.all(10),
         child:
             empNo == null
                 ? Center(child: Text("Loading employee details..."))
-                : applications.isEmpty
+                : filteredApplications.isEmpty
                 ? Center(child: Text("No applications found"))
                 : ListView.builder(
-                  itemCount: applications.length,
+                  itemCount: filteredApplications.length,
                   itemBuilder: (context, index) {
-                    var application = applications[index];
+                    var application = filteredApplications[index];
                     return Card(
                       elevation: 3,
                       margin: EdgeInsets.symmetric(vertical: 8),
@@ -190,9 +274,12 @@ class _MyApplicationsPageState extends State<MyApplicationsPage> {
                           ],
                         ),
                         trailing: Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.blue,
+                          getStatusIcon(application['status']),
+                          color: getStatusColor(application['status']),
                         ),
+                        tileColor: getStatusColor(
+                          application['status'],
+                        ).withOpacity(0.1),
                         onTap:
                             () => _showApplicationDetails(context, application),
                       ),

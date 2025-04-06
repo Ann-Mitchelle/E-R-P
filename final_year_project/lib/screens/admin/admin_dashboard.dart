@@ -32,6 +32,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     });
   }
 
+  void _navigateTo(BuildContext context, String route) {
+    Navigator.pushNamed(context, route);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,7 +45,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         leading: IconButton(
           icon: const Icon(Icons.account_circle, color: Colors.white),
           onPressed: () {
-            // Navigate to Profile
+            _navigateTo(context, "/profile"); // Navigate to Profile
           },
         ),
         title: const Row(

@@ -33,6 +33,7 @@ class _UserListScreenState extends State<UserListScreen> {
         _isLoading = false;
       });
     } catch (error) {
+      print("Error while fetching users: $error"); // Add this line
       setState(() {
         _isLoading = false;
       });
