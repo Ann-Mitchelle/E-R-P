@@ -28,7 +28,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
   bool _isLoading = false;
   String _errorMessage = "";
 
-  // ✅ List of departments for the dropdown
+  // List of departments for the dropdown
   final List<String> _departments = [
     "IT",
     "Finance",
@@ -47,11 +47,17 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _phoneController = TextEditingController(text: widget.user.phoneNumber);
     _roleController = TextEditingController(text: widget.user.role);
     _statusController = TextEditingController(text: widget.user.status);
-    _selectedDepartment = widget.user.department; // ✅ Initialize department
+    _selectedDepartment = widget.user.department;
     _dependants = List.from(widget.user.dependants);
+
+    // Debugging print statements
+    print(
+      "User Details Loaded: ${widget.user.firstName} ${widget.user.secondName}",
+    );
+    print("Initial Department: $_selectedDepartment");
   }
 
-  // ✅ Save changes
+  // Save changes
   Future<void> _updateUser() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -65,23 +71,32 @@ class _EditUserScreenState extends State<EditUserScreen> {
       phoneNumber: _phoneController.text,
       role: _roleController.text,
       status: _statusController.text,
-      department: _selectedDepartment, // ✅ Save department
+      department: _selectedDepartment,
       image: widget.user.image,
       dependants: _dependants,
     );
+
+    // Debugging print statements
+    print(
+      "Updating User with: ${updatedUser.firstName} ${updatedUser.secondName}",
+    );
+    print("Updated Department: ${updatedUser.department}");
 
     String result = await UserService().updateUser(updatedUser, null);
 
     setState(() => _isLoading = false);
 
     if (result.contains("successfully")) {
-      Navigator.pop(context, true); // 🟢 Go back and refresh user details
+      Navigator.pop(context, true);
     } else {
       setState(() => _errorMessage = result);
     }
+
+    // Debugging print statements
+    print("Update Result: $result");
   }
 
-  // ✅ Add a new dependant
+  // Add a new dependant
   void _addDependant() {
     setState(() {
       _dependants.add(
@@ -93,16 +108,24 @@ class _EditUserScreenState extends State<EditUserScreen> {
         ),
       );
     });
+
+    // Debugging print statement
+    print("Added new dependant, total dependants: ${_dependants.length}");
   }
 
-  // ✅ Remove a dependant
+  // Remove a dependant
   void _removeDependant(int index) {
     setState(() {
       _dependants.removeAt(index);
     });
+
+    // Debugging print statement
+    print(
+      "Removed dependant at index $index, total dependants: ${_dependants.length}",
+    );
   }
 
-  // ✅ Build a dependant editing row
+  // Build a dependant editing row
   Widget _buildDependantRow(int index) {
     Dependant dep = _dependants[index];
 
@@ -115,24 +138,32 @@ class _EditUserScreenState extends State<EditUserScreen> {
             TextFormField(
               initialValue: dep.name,
               decoration: const InputDecoration(labelText: "Dependant Name"),
-              onChanged:
-                  (value) => _dependants[index] = dep.copyWith(name: value),
+              onChanged: (value) {
+                setState(() {
+                  _dependants[index] = dep.copyWith(name: value);
+                });
+              },
               validator: (value) => value!.isEmpty ? "Enter a name" : null,
             ),
             TextFormField(
               initialValue: dep.phoneNumber,
               decoration: const InputDecoration(labelText: "Phone Number"),
-              onChanged:
-                  (value) =>
-                      _dependants[index] = dep.copyWith(phoneNumber: value),
+              onChanged: (value) {
+                setState(() {
+                  _dependants[index] = dep.copyWith(phoneNumber: value);
+                });
+              },
               validator:
                   (value) => value!.isEmpty ? "Enter phone number" : null,
             ),
             TextFormField(
               initialValue: dep.relation,
               decoration: const InputDecoration(labelText: "Relation"),
-              onChanged:
-                  (value) => _dependants[index] = dep.copyWith(relation: value),
+              onChanged: (value) {
+                setState(() {
+                  _dependants[index] = dep.copyWith(relation: value);
+                });
+              },
               validator: (value) => value!.isEmpty ? "Enter relation" : null,
             ),
             TextButton(
@@ -187,10 +218,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
                 decoration: const InputDecoration(labelText: "Status"),
                 validator: (value) => value!.isEmpty ? "Enter status" : null,
               ),
-
               const SizedBox(height: 20),
-
-              // ✅ Department Dropdown
               DropdownButtonFormField<String>(
                 value: _selectedDepartment,
                 decoration: const InputDecoration(labelText: "Department"),
@@ -209,34 +237,25 @@ class _EditUserScreenState extends State<EditUserScreen> {
                 validator:
                     (value) => value == null ? "Select a department" : null,
               ),
-
               const SizedBox(height: 20),
-
-              // ✅ Dependants Section
               const Text(
                 "Dependants",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-
               ..._dependants
                   .asMap()
                   .entries
                   .map((entry) => _buildDependantRow(entry.key))
                   .toList(),
-
               TextButton(
                 onPressed: _addDependant,
                 child: const Text("+ Add Dependant"),
               ),
-
               const SizedBox(height: 20),
-
               if (_errorMessage.isNotEmpty)
                 Text(_errorMessage, style: const TextStyle(color: Colors.red)),
-
               const SizedBox(height: 20),
-
               _isLoading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(

@@ -91,6 +91,10 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                 SizedBox(height: 10),
                 Text("Location: ${training.location}"),
                 SizedBox(height: 20),
+                Text("Training participants:",
+                    style: TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
                 if (training.participants.isNotEmpty)
                   //Text("Participants: ${training.participants[0]}"),
                   SizedBox(

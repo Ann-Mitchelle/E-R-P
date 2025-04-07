@@ -26,10 +26,8 @@ class _TrainingsScreenState extends State<TrainingsScreen> {
     );
 
     if (response.statusCode == 200) {
-      // Decode the response body into a map first
       Map<String, dynamic> data = json.decode(response.body);
 
-      // Now extract the "trainings" key which contains the list of training data
       if (data.containsKey('trainings')) {
         List<dynamic> trainingList = data['trainings'];
         return trainingList.map((item) => Training.fromJson(item)).toList();
@@ -41,23 +39,48 @@ class _TrainingsScreenState extends State<TrainingsScreen> {
     }
   }
 
-  // Function to show a dialog with the full details of a training
+  // Show training details with participants
   void showTrainingDetails(Training training) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text(training.title),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Description: ${training.description}'),
-              SizedBox(height: 8),
-              Text('Start Date: ${training.startDate}'),
-              Text('End Date: ${training.endDate}'),
-              Text('Duration: ${training.duration}'),
-              Text('Location: ${training.location}'),
-            ],
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Description: ${training.description}'),
+                  SizedBox(height: 8),
+                  Text('Start Date: ${training.startDate}'),
+                  Text('End Date: ${training.endDate}'),
+                  Text('Duration: ${training.duration}'),
+                  Text('Location: ${training.location}'),
+                  SizedBox(height: 10),
+                  Text(
+                    "Training participants:",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  if (training.participants.isNotEmpty)
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      itemCount: training.participants.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2.0),
+                          child: Text("• ${training.participants[index]}"),
+                        );
+                      },
+                    )
+                  else
+                    Text("No participants."),
+                ],
+              ),
+            ),
           ),
           actions: <Widget>[
             TextButton(
@@ -99,9 +122,7 @@ class _TrainingsScreenState extends State<TrainingsScreen> {
                     '${training.startDate} - ${training.location}',
                   ),
                   trailing: Icon(Icons.arrow_forward),
-                  onTap:
-                      () =>
-                          showTrainingDetails(training), // Show details on tap
+                  onTap: () => showTrainingDetails(training),
                 );
               },
             );

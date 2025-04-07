@@ -1,10 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:final_year_project/screens/admin/dependant_model.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:final_year_project/screens/admin/user_model.dart';
+import 'package:final_year_project/screens/admin/dependant_model.dart';
 
 class UserService {
   final String baseUrl = "https://sanerylgloann.co.ke/EmployeeManagement";
@@ -15,25 +15,26 @@ class UserService {
     Uint8List? webImageBytes,
     String? fileName,
     File? mobileImage,
-    List<Dependant> dependants, // 🟢 Add dependants parameter
+    List<Dependant> dependants,
   ) async {
     try {
       var uri = Uri.parse("$baseUrl/create.php");
       var request = http.MultipartRequest("POST", uri);
 
-      // ✅ Convert User object to Map and add to request fields
+      // Add user fields
       user.toMap().forEach((key, value) {
-        request.fields[key] = value.toString();
+        if (value != null) {
+          request.fields[key] = value.toString();
+        }
       });
 
-      // ✅ Convert dependants list to JSON string
+      // Convert dependants to JSON and add to fields
       String dependantsJson = jsonEncode(
         dependants.map((d) => d.toMap()).toList(),
       );
-      request.fields["dependants"] =
-          dependantsJson; // 🟢 Send dependants as JSON
+      request.fields["dependants"] = dependantsJson;
 
-      // ✅ Handle web image upload
+      // Upload web image
       if (webImageBytes != null && fileName != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
@@ -44,7 +45,7 @@ class UserService {
         );
       }
 
-      // ✅ Handle mobile image upload
+      // Upload mobile image
       if (mobileImage != null) {
         request.files.add(
           await http.MultipartFile.fromPath(
@@ -55,14 +56,8 @@ class UserService {
         );
       }
 
-      // 🟢 Debugging: Print JSON before sending
-      print("Sending Dependants JSON: $dependantsJson");
-
-      // ✅ Send the request
       var response = await request.send();
       var responseBody = await response.stream.bytesToString();
-
-      // 🟢 Debugging: Print server response
       print("Server Response: $responseBody");
 
       try {
@@ -76,19 +71,16 @@ class UserService {
     }
   }
 
-  // ✅ Fetch User by Employee Number
+  // ✅ Fetch user by emp_no
   Future<User> getUserByEmpNo(String empNo) async {
     try {
-      final url =
-          "https://sanerylgloann.co.ke/EmployeeManagement/get_user.php?emp_no=$empNo";
+      final url = "$baseUrl/get_user.php?emp_no=$empNo";
       final response = await http.get(
         Uri.parse(url),
         headers: {"Accept": "application/json"},
       );
 
       print("Fetching user from: $url");
-
-      print("Response Status Code: ${response.statusCode}");
       print("Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
@@ -109,18 +101,7 @@ class UserService {
     }
   }
 
-  Future<void> fetchUserData(String empNo) async {
-    try {
-      UserService userService = UserService();
-      User user = await userService.getUserByEmpNo(empNo);
-
-      print("Employee Number: ${user.emp_no}");
-      print("Name: ${user.firstName} ${user.secondName}");
-    } catch (e) {
-      print("Error fetching user data: $e");
-    }
-  }
-
+  // ✅ Fetch leave balances
   Future<Map<String, int?>> getLeaveBalances(String empNo) async {
     try {
       final url = "$baseUrl/get_leave_balances.php?emp_no=$empNo";
@@ -129,60 +110,86 @@ class UserService {
         headers: {"Accept": "application/json"},
       );
 
-      print("Fetching leave balances from: $url");
-      print("Response Status Code: ${response.statusCode}");
-      print("Response Body: ${response.body}");
+      print("Leave balances response: ${response.body}");
 
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body);
-
-        if (jsonResponse.containsKey("error")) {
-          throw Exception("Server Error: ${jsonResponse["error"]}");
-        }
-
-        // Extract the leave balances from the first item in the leave_balances list
         var leaveData = jsonResponse["leave_balances"][0];
 
-        // ✅ Return the leave balances
         return {
           "Annual": leaveData["Annual"],
           "Sick": leaveData["Sick"],
           "Maternity": leaveData["Maternity"],
-          "Paternity": leaveData["paternity"], // Fixed capitalization issue
+          "Paternity": leaveData["Paternity"], // Case-sensitive fix
         };
       } else {
-        throw Exception(
-          "Server responded with status code: ${response.statusCode}",
-        );
+        throw Exception("Status code error: ${response.statusCode}");
       }
     } catch (e) {
       throw Exception("Error fetching leave balances: $e");
     }
   }
 
+  // ✅ Update user
+
   Future<String> updateUser(User user, String? password) async {
+    // Preparing the data to send
     Map<String, dynamic> data = {
       "emp_no": user.emp_no,
-      "firstName": user.firstName,
-      "secondName": user.secondName,
+      "firstname": user.firstName,
+      "secondname": user.secondName,
       "email": user.email,
-      "phoneNumber": user.phoneNumber,
+      "phonenumber": user.phoneNumber,
       "role": user.role,
       "status": user.status,
       "department": user.department,
       "image": user.image,
-      "dependants": user.dependants.map((d) => d.toMap()).toList(),
+      "dependants": jsonEncode(user.dependants.map((d) => d.toMap()).toList()),
     };
 
+    // Add password if it's not null or empty
     if (password != null && password.isNotEmpty) {
-      data["password"] = password; // ✅ Only add password if provided
+      data["password"] = password;
     }
 
-    // Call API or Database update here
-    return "User updated successfully"; // Example response
+    try {
+      // Sending the HTTP POST request
+      final response = await http.post(
+        Uri.parse(
+          "https://sanerylgloann.co.ke/EmployeeManagement/update_user.php",
+        ),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+
+      // Check if the response status is OK (200)
+      if (response.statusCode == 200) {
+        // Try parsing the response body as JSON
+        try {
+          final responseBody = jsonDecode(response.body);
+          // Check if the response contains the 'message' field
+          if (responseBody.containsKey('message')) {
+            return responseBody['message'];
+          } else {
+            return "Error: Unexpected response format.";
+          }
+        } catch (e) {
+          // Handle the case where the response is not valid JSON
+          print("Error parsing response: $e");
+          return "Error: Response is not valid JSON.";
+        }
+      } else {
+        // Handle the case where the server returns a non-OK status code
+        return "Error: ${response.statusCode} - ${response.body}";
+      }
+    } catch (e) {
+      // Handle network errors or any exceptions that occur during the request
+      print("Error updating user: $e");
+      return "Error: Unable to update user. Please try again later.";
+    }
   }
 
-  // ✅ Fetch All Users
+  // ✅ Fetch all users
   Future<List<User>> getAllUsers() async {
     try {
       final response = await http.get(Uri.parse("$baseUrl/viewusers.php"));

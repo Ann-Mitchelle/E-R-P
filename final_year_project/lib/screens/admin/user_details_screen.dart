@@ -1,3 +1,4 @@
+import 'package:final_year_project/screens/admin/edit_user_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:final_year_project/screens/admin/user_model.dart';
 import 'package:final_year_project/screens/admin/user_service.dart';
@@ -139,7 +140,12 @@ class _UserDetailsScreenState extends State<UserDetailsScreen> {
             children: [
               ElevatedButton(
                 onPressed: () {
-                  // TODO: Navigate to Edit Screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditUserScreen(user: _user!),
+                    ),
+                  );
                 },
                 child: const Text("Edit"),
               ),

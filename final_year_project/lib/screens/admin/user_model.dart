@@ -37,6 +37,7 @@ class User {
 
   Map<String, dynamic> toMap() {
     return {
+      'emp_no': emp_no,
       'firstname': firstName,
       'secondname': secondName,
       'email': email,
@@ -56,7 +57,7 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      emp_no: json['emp_no']?.toString() ?? "",
+      emp_no: json['emp_no']?.toString(),
       firstName: json['firstname'] ?? "",
       secondName: json['secondname'] ?? "",
       email: json['email'] ?? "",
@@ -65,9 +66,8 @@ class User {
       role: json['role'] ?? "user",
       image: json['image'] ?? "",
       status: json['status'] ?? "",
-      password: "", // Do not populate passwords from backend for security
-      dependants: _parseDependants(json['dependant']),
-
+      password: "", // Do not populate from backend for security
+      dependants: _parseDependants(json['dependants']),
       annual: _parseInt(json['annual']),
       sick: _parseInt(json['sick']),
       maternity: _parseInt(json['maternity']),
@@ -82,9 +82,6 @@ class User {
 
   static List<Dependant> _parseDependants(dynamic value) {
     if (value == null || value is! List) return [];
-    return value
-        .map((dep) => Dependant.fromJson(dep))
-        .toList()
-        .cast<Dependant>();
+    return value.map((dep) => Dependant.fromJson(dep)).toList();
   }
 }

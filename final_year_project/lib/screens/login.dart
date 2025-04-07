@@ -62,7 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString("department", data["user"]["department"]);
         await prefs.setString("role", data["user"]["role"]);
 
-      
         if (_rememberMe) {
           await prefs.setBool("rememberMe", true);
         } else {
@@ -109,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
             Center(
               child: ClipOval(
                 child: Image.asset(
-                  'assets/images/image.png',
+                  'assets/images/ic_launcher.png',
                   height: 150,
                   width: 150,
                   fit: BoxFit.cover,

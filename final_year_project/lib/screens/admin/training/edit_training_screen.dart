@@ -44,9 +44,7 @@ class _EditTrainingPageState extends State<EditTrainingScreen> {
     startDate = DateTime.tryParse(widget.training.startDate);
     endDate = DateTime.tryParse(widget.training.endDate);
 
-    selectedParticipants = List<String>.from(
-      widget.training.participants,
-    );
+    selectedParticipants = List<String>.from(widget.training.participants);
 
     fetchEmployees();
   }
@@ -126,7 +124,7 @@ class _EditTrainingPageState extends State<EditTrainingScreen> {
         var response = await http.post(
           Uri.parse("$apiUrl/update_training.php"),
           headers: {"Content-Type": "application/x-www-form-urlencoded"},
-          body: jsonEncode(data),
+          body: data, // Send data as form-encoded (not JSON)
         );
 
         var responseBody = jsonDecode(response.body);
@@ -189,61 +187,61 @@ class _EditTrainingPageState extends State<EditTrainingScreen> {
               ),
               ListTile(
                 title: Text(
-                  startDate == null
-                      ? "Select Start Date"
-                      : "Start Date: ${DateFormat.yMMMd().format(startDate!)}",
+                  "Start Date: ${startDate != null ? DateFormat("yyyy-MM-dd").format(startDate!) : "Not selected"}",
                 ),
-                trailing: Icon(Icons.calendar_today),
                 onTap: () => _selectDate(context, true),
               ),
               ListTile(
                 title: Text(
-                  endDate == null
-                      ? "Select End Date"
-                      : "End Date: ${DateFormat.yMMMd().format(endDate!)}",
+                  "End Date: ${endDate != null ? DateFormat("yyyy-MM-dd").format(endDate!) : "Not selected"}",
                 ),
-                trailing: Icon(Icons.calendar_today),
                 onTap: () => _selectDate(context, false),
               ),
-              Text("Select Participants"),
               DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: null,
+                value: null, // Allow any employee to be added
+                decoration: InputDecoration(labelText: "Participants"),
                 items:
-                    employees.map((employee) {
-                      return DropdownMenuItem<String>(
-                        value: employee["emp_no"],
-                        child: Text(employee["name"]),
-                      );
-                    }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null &&
-                      !selectedParticipants.contains(newValue)) {
-                    setState(() {
-                      selectedParticipants.add(newValue);
-                    });
-                  }
+                    employees
+                        .where(
+                          (emp) =>
+                              !selectedParticipants.contains(emp['emp_no']),
+                        ) // Filter out already selected participants
+                        .map((emp) {
+                          return DropdownMenuItem<String>(
+                            value: emp['emp_no'],
+                            child: Text(emp['name']),
+                          );
+                        })
+                        .toList()
+                      ..addAll(
+                        // Add selected participants with remove option
+                        selectedParticipants.map((empNo) {
+                          var emp = employees.firstWhere(
+                            (e) => e['emp_no'] == empNo,
+                          );
+                          return DropdownMenuItem<String>(
+                            value: empNo,
+                            child: Row(
+                              children: [
+                                Text(emp['name']),
+                                Icon(
+                                  Icons.remove_circle,
+                                  color: Colors.red,
+                                ), // Remove icon
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                onChanged: (value) {
+                  setState(() {
+                    if (selectedParticipants.contains(value)) {
+                      selectedParticipants.remove(value);
+                    } else {
+                      selectedParticipants.add(value!);
+                    }
+                  });
                 },
-              ),
-              Wrap(
-                children:
-                    selectedParticipants.map((id) {
-                      var employee = employees.firstWhere(
-                        (emp) => emp["emp_no"] == id,
-                        orElse:
-                            () => {
-                              "name": "Unknown",
-                            }, // Handle missing employee data
-                      );
-                      return Chip(
-                        label: Text(employee["name"]),
-                        onDeleted: () {
-                          setState(() {
-                            selectedParticipants.remove(id);
-                          });
-                        },
-                      );
-                    }).toList(),
               ),
               SizedBox(height: 20),
               ElevatedButton(

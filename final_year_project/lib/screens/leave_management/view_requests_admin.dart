@@ -1,8 +1,12 @@
 import 'package:final_year_project/screens/leave_management/update_leave.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
 import 'dart:convert';
-// Import the detail page
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'dart:io';
 
 class AdminLeaveRequestsPage extends StatefulWidget {
   @override
@@ -10,32 +14,25 @@ class AdminLeaveRequestsPage extends StatefulWidget {
 }
 
 class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
-  final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
   List<dynamic> _leaveRequests = [];
   List<dynamic> _filteredRequests = [];
   bool _isLoading = false;
-  bool _hasMore = true;
   String _searchQuery = "";
-  String _status = ""; // No default status filter
-  String _department = ""; // No default department filter
+  String _status = "";
+  String _department = "";
 
-  // Fetch leave requests with dynamic filters
+  // Fetch leave requests
   Future<void> _fetchLeaveRequests() async {
-    if (_isLoading || !_hasMore) return;
-
     setState(() {
       _isLoading = true;
     });
 
-    // Construct the URL dynamically without pagination params
     final url = Uri.parse(
       'https://sanerylgloann.co.ke/EmployeeManagement/display_leave_admin.php?'
       'status=$_status&department=$_department',
     );
-
-    print('Fetching URL: $url'); // Debug: Log the URL to check if it's correct
 
     try {
       final response = await http.get(url);
@@ -49,11 +46,9 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
 
         final List<dynamic> fetchedRequests = List.from(data['data']);
         setState(() {
-          _leaveRequests.addAll(fetchedRequests);
+          _leaveRequests = fetchedRequests;
           _filteredRequests = List.from(_leaveRequests);
           _isLoading = false;
-          _hasMore =
-              fetchedRequests.isNotEmpty; // Check if more data is available
         });
       } else {
         setState(() {
@@ -65,11 +60,10 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
       setState(() {
         _isLoading = false;
       });
-      print('Error: $error'); // Debug: Log the error
+      print('Error: $error');
     }
   }
 
-  // Search logic for name or department
   void _onSearchChanged() {
     setState(() {
       _searchQuery = _searchController.text.toLowerCase();
@@ -83,15 +77,6 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
     });
   }
 
-  // Listen for scroll to trigger pagination
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      _fetchLeaveRequests();
-    }
-  }
-
-  // Color based on status
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -105,22 +90,73 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
     }
   }
 
+  Future<void> _generatePdfReport() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        build:
+            (pw.Context context) => [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  'Leave Requests Report',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (_status.isNotEmpty || _department.isNotEmpty)
+                pw.Paragraph(
+                  text:
+                      'Filters - Status: ${_status.isEmpty ? "All" : _status}, Department: ${_department.isEmpty ? "All" : _department}',
+                ),
+              pw.Table.fromTextArray(
+                headers: ['Name', 'Department', 'Type', 'From', 'To', 'Status'],
+                data:
+                    _filteredRequests.map((leave) {
+                      return [
+                        leave['fullname'],
+                        leave['department'],
+                        leave['leave_type'],
+                        leave['start_date'],
+                        leave['end_date'],
+                        leave['status'],
+                      ];
+                    }).toList(),
+              ),
+            ],
+      ),
+    );
+
+    try {
+      final output = await getTemporaryDirectory();
+      final file = File("${output.path}/leave_report.pdf");
+      await file.writeAsBytes(await pdf.save());
+
+      await Printing.layoutPdf(
+        onLayout: (PdfPageFormat format) async => pdf.save(),
+      );
+    } catch (e) {
+      print("Error generating PDF: $e");
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _fetchLeaveRequests();
-    _scrollController.addListener(_onScroll);
     _searchController.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  // UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -132,7 +168,7 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // Search Field
+            // Search
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -143,21 +179,14 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
             ),
             SizedBox(height: 10),
 
-            // Department and Status Filters
+            // Filters
             Row(
               children: [
-                // Filter by department
                 DropdownButton<String>(
                   value: _department.isEmpty ? null : _department,
                   hint: Text("Select Department"),
                   items:
-                      [
-                        'HR',
-                        'IT',
-                        'Finance',
-                        'Admin',
-                      ] // List your departments here
-                      .map((department) {
+                      ['HR', 'IT', 'Finance', 'Admin'].map((department) {
                         return DropdownMenuItem<String>(
                           value: department,
                           child: Text(department),
@@ -166,14 +195,11 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
                   onChanged: (value) {
                     setState(() {
                       _department = value!;
-                      _leaveRequests.clear();
-                      _filteredRequests.clear();
                       _fetchLeaveRequests();
                     });
                   },
                 ),
                 SizedBox(width: 10),
-                // Filter by status
                 DropdownButton<String>(
                   value: _status.isEmpty ? null : _status,
                   hint: Text("Select Status"),
@@ -187,8 +213,6 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
                   onChanged: (value) {
                     setState(() {
                       _status = value!;
-                      _leaveRequests.clear();
-                      _filteredRequests.clear();
                       _fetchLeaveRequests();
                     });
                   },
@@ -197,19 +221,28 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
             ),
             SizedBox(height: 10),
 
-            // Leave Requests List
+            // PDF Button
+            ElevatedButton.icon(
+              icon: Icon(Icons.picture_as_pdf),
+              label: Text("Generate Report"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              onPressed: () => _generatePdfReport(),
+            ),
+            SizedBox(height: 10),
+
+            // Leave List
             Expanded(
               child:
-                  _filteredRequests.isEmpty
+                  _isLoading
                       ? Center(child: CircularProgressIndicator())
+                      : _filteredRequests.isEmpty
+                      ? Center(child: Text('No leave requests found.'))
                       : ListView.builder(
-                        controller: _scrollController,
-                        itemCount:
-                            _filteredRequests.length + (_hasMore ? 1 : 0),
+                        itemCount: _filteredRequests.length,
                         itemBuilder: (context, index) {
-                          if (index == _filteredRequests.length) {
-                            return Center(child: CircularProgressIndicator());
-                          }
                           final req = _filteredRequests[index];
                           return GestureDetector(
                             onTap: () {

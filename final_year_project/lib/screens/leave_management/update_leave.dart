@@ -60,7 +60,7 @@ class _LeaveRequestDetailPageState extends State<LeaveRequestDetailPage> {
             leaveType = data['data']['leave_type'];
             startDate = data['data']['start_date'];
             endDate = data['data']['end_date'];
-            duration = data['data']['duration'];
+            duration = data['data']['duration'].toString();
             notes = data['data']['notes'];
             isLoading =
                 false; // Set loading state to false after data is loaded
