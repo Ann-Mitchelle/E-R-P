@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum LeaveType { annual, sick, maternity, paternity }
+enum LeaveType { Annual, Sick, Maternity, paternity }
 
 class LeaveApplicationScreen extends StatefulWidget {
   @override
@@ -21,7 +21,7 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
   String? _note;
   String? _documentPath;
   int? _leaveDuration;
-  bool _isSubmitting = false; // Loading indicator
+  bool _isSubmitting = false;
 
   Map<String, int?> leaveBalances = {
     "Annual": 30,
@@ -29,12 +29,30 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
     "Maternity": 90,
     "paternity": 14,
   };
+
   String? empNo;
+
+  final List<DateTime> kenyanHolidays = [
+    DateTime(DateTime.now().year, 1, 1), // New Year's Day
+    DateTime(DateTime.now().year, 4, 7), // Good Friday 2025 (adjust each year)
+    DateTime(
+      DateTime.now().year,
+      4,
+      10,
+    ), // Easter Monday 2025 (adjust each year)
+    DateTime(DateTime.now().year, 5, 1), // Labour Day
+    DateTime(DateTime.now().year, 6, 1), // Madaraka Day
+    DateTime(DateTime.now().year, 10, 10), // Huduma Day
+    DateTime(DateTime.now().year, 10, 20), // Mashujaa Day
+    DateTime(DateTime.now().year, 12, 12), // Jamhuri Day
+    DateTime(DateTime.now().year, 12, 25), // Christmas
+    DateTime(DateTime.now().year, 12, 26), // Boxing Day
+  ];
+
   @override
   void initState() {
     super.initState();
     _loadEmployeeData();
-    // _fetchLeaveBalances(empNo);
   }
 
   Future<void> _loadEmployeeData() async {
@@ -51,91 +69,41 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
   Future<void> _fetchLeaveBalances(String empNo) async {
     try {
       UserService userService = UserService();
-
-      // Fetch the leave balances
       Map<String, int?> balances = await userService.getLeaveBalances(empNo);
-
-      // Update the state with the fetched leave balances
       setState(() {
         leaveBalances = balances;
       });
     } catch (e) {
-      // Handle any errors that occur during the API request
       print("Error fetching leave balances: $e");
-      _showErrorS("Failed to load leave balances");
+      _showError("Failed to load leave balances");
     }
   }
 
-  // Show error message
-  void _showErrorS(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Error"),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-  // Fetch leave balances from API
-  /*void _fetchLeaveBalances() async {
-    final url = Uri.parse(
-      "https://sanerylgloann.co.ke/EmployeeManagement/get_leave_balances.php",
-    );
+  int calculateBusinessDays(DateTime start, DateTime end) {
+    int businessDays = 0;
+    DateTime current = start;
 
-    try {
-      final response = await http.get(
-        url,
-        headers: {
-          "Content-Type":
-              "application/x-www-form-urlencoded", // Ensures proper encoding
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        // Debugging
-
-        if (jsonResponse["success"] == 1) {
-          List<dynamic> leaveData = jsonResponse["leave_balances"];
-          // Debugging
-
-          if (leaveData.isNotEmpty) {
-            setState(() {
-              leaveBalances = {
-                "annual": int.tryParse(leaveData[0]["Annual"].toString()) ?? 0,
-                "sick": int.tryParse(leaveData[0]["Sick"].toString()) ?? 0,
-                "maternity":
-                    int.tryParse(leaveData[0]["Maternity"].toString()) ?? 0,
-                "paternity":
-                    int.tryParse(leaveData[0]["paternity"].toString()) ?? 0,
-              };
-            });
-          }
-        } else {
-          _showError(jsonResponse["message"]);
-        }
-      } else {
-        _showError("Failed to load leave balances. Server Error.");
+    while (!current.isAfter(end)) {
+      if (current.weekday != DateTime.saturday &&
+          current.weekday != DateTime.sunday &&
+          !kenyanHolidays.any(
+            (h) =>
+                h.day == current.day &&
+                h.month == current.month &&
+                h.year == current.year,
+          )) {
+        businessDays++;
       }
-    } catch (e) {
-      _showError("Error fetching data: $e");
+      current = current.add(Duration(days: 1));
     }
-  }*/
+
+    return businessDays;
+  }
 
   void _pickDate(BuildContext context, bool isStartDate) async {
     DateTime now = DateTime.now();
     DateTime minDate =
-        (_selectedLeaveType == LeaveType.sick)
+        (_selectedLeaveType == LeaveType.Sick)
             ? now
             : now.add(Duration(days: 7));
 
@@ -150,13 +118,13 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
       setState(() {
         if (isStartDate) {
           _startDate = pickedDate;
-          _endDate = null; // Reset end date when start date changes
+          _endDate = null;
         } else {
           _endDate = pickedDate;
         }
 
         if (_startDate != null && _endDate != null) {
-          _leaveDuration = _endDate!.difference(_startDate!).inDays + 1;
+          _leaveDuration = calculateBusinessDays(_startDate!, _endDate!);
         }
       });
     }
@@ -179,16 +147,10 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
       return;
     }
 
-    int leaveDays = _endDate!.difference(_startDate!).inDays + 1;
+    int leaveDays = _leaveDuration!;
     String leaveTypeKey = _selectedLeaveType.toString().split('.').last;
-    leaveTypeKey =
-        leaveTypeKey[0].toUpperCase() +
-        leaveTypeKey.substring(1); // Capitalize first letter
-
+    leaveTypeKey = leaveTypeKey[0].toUpperCase() + leaveTypeKey.substring(1);
     int maxDays = leaveBalances[leaveTypeKey] ?? 0;
-
-    print("Maximum leave Days: $maxDays");
-    print("Leave Days: $leaveDays");
 
     if (leaveDays > maxDays) {
       _showError("Cannot exceed $maxDays days for this leave type.");
@@ -207,7 +169,7 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
       ),
     );
 
-    request.fields['emp_no'] = "PPP0002"; // Replace with actual employee ID
+    request.fields['emp_no'] = empNo.toString();
     request.fields['leave_type'] =
         _selectedLeaveType.toString().split('.').last;
     request.fields['start_date'] = _startDate.toString();
@@ -225,11 +187,6 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
       var response = await request.send();
       var responseData = await response.stream.bytesToString();
 
-      // ✅ Print response for debugging
-      print("Response Status Code: ${response.statusCode}");
-      print("Response Body: $responseData");
-
-      // ✅ Check if response is HTML (error page)
       if (responseData.trim().startsWith('<')) {
         _showError(
           "Server returned an HTML response. Check API URL or server error.",
@@ -292,7 +249,6 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                 ),
               ),
               SizedBox(height: 16),
-
               Text("Select Leave Type"),
               DropdownButtonFormField<LeaveType>(
                 value: _selectedLeaveType,
@@ -305,9 +261,7 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                     LeaveType.values.map((LeaveType type) {
                       return DropdownMenuItem<LeaveType>(
                         value: type,
-                        child: Text(
-                          type.toString().split('.').last.toUpperCase(),
-                        ),
+                        child: Text(type.toString().split('.').last),
                       );
                     }).toList(),
                 onChanged: (LeaveType? newValue) {
@@ -319,7 +273,6 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                     (value) =>
                         value == null ? 'Please select a leave type' : null,
               ),
-
               SizedBox(height: 16),
               Text("Start Date"),
               ElevatedButton(
@@ -333,7 +286,6 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                   backgroundColor: Colors.orangeAccent,
                 ),
               ),
-
               SizedBox(height: 16),
               Text("End Date"),
               ElevatedButton(
@@ -347,7 +299,6 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                   backgroundColor: Colors.orangeAccent,
                 ),
               ),
-
               if (_leaveDuration != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
@@ -360,7 +311,6 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                     ),
                   ),
                 ),
-
               SizedBox(height: 16),
               TextFormField(
                 decoration: InputDecoration(
@@ -369,18 +319,17 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                 ),
                 onSaved: (value) => _note = value,
               ),
-
               SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: _pickDocument,
                 icon: Icon(Icons.attach_file),
-                label: Text(_documentPath ?? "Attach Supporting Document"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orangeAccent,
+                label: Text(
+                  _documentPath == null
+                      ? "Attach Document"
+                      : "Document Selected",
                 ),
               ),
-
-              SizedBox(height: 24),
+              SizedBox(height: 20),
               Center(
                 child:
                     _isSubmitting
@@ -389,11 +338,12 @@ class _LeaveApplicationScreenState extends State<LeaveApplicationScreen> {
                           onPressed: _submitApplication,
                           child: Text("Submit Leave Application"),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blueAccent,
+                            backgroundColor: Colors.green,
                             padding: EdgeInsets.symmetric(
-                              horizontal: 30,
-                              vertical: 15,
+                              horizontal: 24,
+                              vertical: 12,
                             ),
+                            textStyle: TextStyle(fontSize: 16),
                           ),
                         ),
               ),

@@ -1,7 +1,7 @@
-import 'package:final_year_project/screens/admin/training/edit_training_screen.dart';
 import 'package:flutter/material.dart';
 import 'training_model.dart';
 import 'training_service.dart';
+import 'edit_training_screen.dart';
 
 class TrainingDetailScreen extends StatefulWidget {
   final String trainingId;
@@ -91,12 +91,12 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                 SizedBox(height: 10),
                 Text("Location: ${training.location}"),
                 SizedBox(height: 20),
-                Text("Training participants:",
-                    style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  "Training participants:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: 10),
                 if (training.participants.isNotEmpty)
-                  //Text("Participants: ${training.participants[0]}"),
                   SizedBox(
                     height: 100,
                     child: ListView.builder(
@@ -106,7 +106,6 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                       itemCount: training.participants.length,
                     ),
                   ),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -114,6 +113,9 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                       icon: Icon(Icons.edit),
                       label: Text("Edit"),
                       onPressed: () {
+                        print(
+                          "Participants in TrainingDetailScreen: ${training.participants}",
+                        ); // Debugging
                         Navigator.push(
                           context,
                           MaterialPageRoute(

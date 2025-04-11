@@ -1,8 +1,8 @@
-import 'package:final_year_project/screens/admin/training/training_model.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:intl/intl.dart';
+import 'training_model.dart';
+import 'training_service.dart';
 
 class EditTrainingScreen extends StatefulWidget {
   final Training training;
@@ -10,65 +10,60 @@ class EditTrainingScreen extends StatefulWidget {
   EditTrainingScreen({required this.training});
 
   @override
-  _EditTrainingPageState createState() => _EditTrainingPageState();
+  _EditTrainingScreenState createState() => _EditTrainingScreenState();
 }
 
-class _EditTrainingPageState extends State<EditTrainingScreen> {
-  final _formKey = GlobalKey<FormState>();
-
-  // Form controllers
-  late TextEditingController titleController;
-  late TextEditingController descriptionController;
-  late TextEditingController locationController;
-  late TextEditingController durationController;
-
-  DateTime? startDate;
-  DateTime? endDate;
-  List<dynamic> employees = [];
-  List<String> selectedParticipants = [];
-
-  final String apiUrl = "https://sanerylgloann.co.ke/EmployeeManagement/";
+class _EditTrainingScreenState extends State<EditTrainingScreen> {
+  late TextEditingController _titleController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _startDateController;
+  late TextEditingController _endDateController;
+  late TextEditingController _locationController;
+  late TextEditingController _durationController;
+  late List<String> _participants;
+  late Future<void> _employeesFuture;
+  List<Map<String, String>> employees = [];
+  String? _selectedEmployee;
 
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with existing training data
-    titleController = TextEditingController(text: widget.training.title);
-    descriptionController = TextEditingController(
+    _titleController = TextEditingController(text: widget.training.title);
+    _descriptionController = TextEditingController(
       text: widget.training.description,
     );
+    _startDateController = TextEditingController(
+      text: widget.training.startDate,
+    );
+    _endDateController = TextEditingController(text: widget.training.endDate);
+    _locationController = TextEditingController(text: widget.training.location);
+    _durationController = TextEditingController(text: widget.training.duration);
+    _participants = List<String>.from(widget.training.participants);
 
-    locationController = TextEditingController(text: widget.training.location);
-    durationController = TextEditingController(text: widget.training.duration);
-
-    startDate = DateTime.tryParse(widget.training.startDate);
-    endDate = DateTime.tryParse(widget.training.endDate);
-
-    selectedParticipants = List<String>.from(widget.training.participants);
-
-    fetchEmployees();
-  }
-
-  @override
-  void dispose() {
-    titleController.dispose();
-    descriptionController.dispose();
-    locationController.dispose();
-    durationController.dispose();
-    super.dispose();
+    _employeesFuture =
+        fetchEmployees(); // Fetch employees when the screen initializes
   }
 
   Future<void> fetchEmployees() async {
     try {
-      final response = await http.get(Uri.parse("$apiUrl/get_employees.php"));
+      final response = await http.get(
+        Uri.parse(
+          "https://sanerylgloann.co.ke/EmployeeManagement/get_employees.php",
+        ),
+      );
 
       if (response.statusCode == 200) {
         List<dynamic> data = jsonDecode(response.body);
-        employees =
-            data.map((json) {
-              return {"emp_no": json["emp_no"], "name": json["name"]};
-            }).toList();
-        setState(() {}); // Refresh UI
+        setState(() {
+          // Ensure you're using the proper structure for the employee data
+          employees =
+              data.map((json) {
+                return {
+                  "emp_no": json["emp_no"].toString(),
+                  "name": json["name"].toString(),
+                };
+              }).toList();
+        });
       } else {
         print("Failed to load employees: ${response.statusCode}");
       }
@@ -77,73 +72,73 @@ class _EditTrainingPageState extends State<EditTrainingScreen> {
     }
   }
 
-  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate:
-          isStartDate
-              ? (startDate ?? DateTime.now())
-              : (endDate ?? DateTime.now()),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
+  void _saveTraining() async {
+    Training updatedTraining = Training(
+      title: _titleController.text,
+      description: _descriptionController.text,
+      startDate: _startDateController.text,
+      endDate: _endDateController.text,
+      location: _locationController.text,
+      participants: _participants,
+      trainingId: widget.training.trainingId, // 🟢 Use existing trainingId
+      duration: _durationController.text,
     );
 
+    bool success = await ApiTrainingService.updateTraining(updatedTraining);
+    if (success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Training updated successfully")));
+      Navigator.pop(context, updatedTraining);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to update training")));
+    }
+  }
+
+  void _addParticipant(String employeeName) {
+    setState(() {
+      if (!_participants.contains(employeeName)) {
+        _participants.add(employeeName);
+      }
+    });
+  }
+
+  void _removeParticipant(int index) {
+    setState(() {
+      _participants.removeAt(index);
+    });
+  }
+
+  Future<void> _selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2101),
+    );
     if (pickedDate != null) {
       setState(() {
-        if (isStartDate) {
-          startDate = pickedDate;
-        } else {
-          endDate = pickedDate;
-        }
+        controller.text =
+            "${pickedDate.toLocal()}".split(
+              ' ',
+            )[0]; // Formatting the date as YYYY-MM-DD
+        _calculateDuration(); // Recalculate the duration when date changes
       });
     }
   }
 
-  Future<void> _updateTraining() async {
-    if (_formKey.currentState!.validate()) {
-      if (startDate == null || endDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please select start and end dates")),
-        );
-        return;
-      }
-
-      var data = {
-        "training_id":
-            widget.training.trainingId, // Include training ID for update
-        "title": titleController.text,
-        "description": descriptionController.text,
-        "start_date": DateFormat("yyyy-MM-dd").format(startDate!),
-        "end_date": DateFormat("yyyy-MM-dd").format(endDate!),
-        "duration": durationController.text,
-        "location": locationController.text,
-        "participants": jsonEncode(selectedParticipants),
-      };
-
-      try {
-        var response = await http.post(
-          Uri.parse("$apiUrl/update_training.php"),
-          headers: {"Content-Type": "application/x-www-form-urlencoded"},
-          body: data, // Send data as form-encoded (not JSON)
-        );
-
-        var responseBody = jsonDecode(response.body);
-        if (response.statusCode == 200 && responseBody["success"] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Training updated successfully!")),
-          );
-          Navigator.pop(context, true); // Go back and refresh the list
-        } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(responseBody.toString())));
-        }
-      } catch (e) {
-        print("Error: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to connect to server: $e")),
-        );
-      }
+  void _calculateDuration() {
+    if (_startDateController.text.isNotEmpty &&
+        _endDateController.text.isNotEmpty) {
+      DateTime startDate = DateTime.parse(_startDateController.text);
+      DateTime endDate = DateTime.parse(_endDateController.text);
+      int difference = endDate.difference(startDate).inDays + 1;
+      _durationController.text = "$difference days";
     }
   }
 
@@ -152,101 +147,123 @@ class _EditTrainingPageState extends State<EditTrainingScreen> {
     return Scaffold(
       appBar: AppBar(title: Text("Edit Training")),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
+        padding: EdgeInsets.all(16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: titleController,
-                decoration: InputDecoration(labelText: "Training Title"),
-                validator:
-                    (value) => value!.isEmpty ? "Title is required" : null,
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: "Title"),
               ),
-              TextFormField(
-                controller: descriptionController,
+              TextField(
+                controller: _descriptionController,
                 decoration: InputDecoration(labelText: "Description"),
-                maxLines: 3,
-                validator:
-                    (value) =>
-                        value!.isEmpty ? "Description is required" : null,
               ),
-              TextFormField(
-                controller: locationController,
+              GestureDetector(
+                onTap: () => _selectDate(context, _startDateController),
+                child: AbsorbPointer(
+                  child: TextField(
+                    controller: _startDateController,
+                    decoration: InputDecoration(labelText: "Start Date"),
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _selectDate(context, _endDateController),
+                child: AbsorbPointer(
+                  child: TextField(
+                    controller: _endDateController,
+                    decoration: InputDecoration(labelText: "End Date"),
+                  ),
+                ),
+              ),
+              TextField(
+                controller: _locationController,
                 decoration: InputDecoration(labelText: "Location"),
-                validator:
-                    (value) => value!.isEmpty ? "Location is required" : null,
               ),
-              TextFormField(
-                controller: durationController,
-                decoration: InputDecoration(
-                  labelText: "Duration (e.g., 2 days)",
-                ),
-                validator:
-                    (value) => value!.isEmpty ? "Duration is required" : null,
+              TextField(
+                controller: _durationController,
+                decoration: InputDecoration(labelText: "Duration"),
+                readOnly: true,
               ),
-              ListTile(
-                title: Text(
-                  "Start Date: ${startDate != null ? DateFormat("yyyy-MM-dd").format(startDate!) : "Not selected"}",
-                ),
-                onTap: () => _selectDate(context, true),
+              SizedBox(height: 20),
+              Text(
+                "Participants:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              ListTile(
-                title: Text(
-                  "End Date: ${endDate != null ? DateFormat("yyyy-MM-dd").format(endDate!) : "Not selected"}",
-                ),
-                onTap: () => _selectDate(context, false),
-              ),
-              DropdownButtonFormField<String>(
-                value: null, // Allow any employee to be added
-                decoration: InputDecoration(labelText: "Participants"),
-                items:
-                    employees
-                        .where(
-                          (emp) =>
-                              !selectedParticipants.contains(emp['emp_no']),
-                        ) // Filter out already selected participants
-                        .map((emp) {
-                          return DropdownMenuItem<String>(
-                            value: emp['emp_no'],
-                            child: Text(emp['name']),
-                          );
-                        })
-                        .toList()
-                      ..addAll(
-                        // Add selected participants with remove option
-                        selectedParticipants.map((empNo) {
-                          var emp = employees.firstWhere(
-                            (e) => e['emp_no'] == empNo,
-                          );
-                          return DropdownMenuItem<String>(
-                            value: empNo,
-                            child: Row(
-                              children: [
-                                Text(emp['name']),
-                                Icon(
-                                  Icons.remove_circle,
-                                  color: Colors.red,
-                                ), // Remove icon
-                              ],
-                            ),
-                          );
-                        }).toList(),
+              if (_participants.isNotEmpty)
+                ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _participants.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(_participants[index]),
+                      trailing: IconButton(
+                        icon: Icon(Icons.remove, color: Colors.red),
+                        onPressed: () => _removeParticipant(index),
                       ),
-                onChanged: (value) {
-                  setState(() {
-                    if (selectedParticipants.contains(value)) {
-                      selectedParticipants.remove(value);
-                    } else {
-                      selectedParticipants.add(value!);
-                    }
-                  });
+                    );
+                  },
+                ),
+              if (_participants.isEmpty) Text("No participants added yet"),
+              SizedBox(height: 10),
+              Text(
+                "Select Employees to Add as Participants:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              FutureBuilder(
+                future: _employeesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text("Error fetching employees"));
+                  }
+
+                  return Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _selectedEmployee,
+                        decoration: InputDecoration(
+                          labelText: 'Select Participant',
+                        ),
+                        items:
+                            employees.map((employee) {
+                              return DropdownMenuItem<String>(
+                                value: employee["emp_no"],
+                                child: Text(employee["name"]!),
+                              );
+                            }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _selectedEmployee = newValue;
+                          });
+                        },
+                      ),
+                      SizedBox(height: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (_selectedEmployee != null &&
+                              !_participants.contains(_selectedEmployee)) {
+                            var employee = employees.firstWhere(
+                              (emp) => emp["emp_no"] == _selectedEmployee,
+                            );
+                            _addParticipant(employee["name"]!);
+                          }
+                        },
+                        child: Text("Add Participant"),
+                      ),
+                    ],
+                  );
                 },
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _updateTraining,
-                child: Text("Update Training"),
+                onPressed: _saveTraining,
+                child: Text("Save Training"),
               ),
             ],
           ),

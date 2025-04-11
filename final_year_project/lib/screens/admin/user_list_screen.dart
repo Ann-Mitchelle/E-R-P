@@ -2,6 +2,9 @@ import 'package:final_year_project/screens/admin/user_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:final_year_project/screens/admin/user_service.dart';
 import 'package:final_year_project/screens/admin/user_model.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class UserListScreen extends StatefulWidget {
   @override
@@ -29,11 +32,11 @@ class _UserListScreenState extends State<UserListScreen> {
       print("Fetched users: $users");
       setState(() {
         _users = users;
-        _filteredUsers = users; // Initially, show all users
+        _filteredUsers = users;
         _isLoading = false;
       });
     } catch (error) {
-      print("Error while fetching users: $error"); // Add this line
+      print("Error while fetching users: $error");
       setState(() {
         _isLoading = false;
       });
@@ -57,10 +60,56 @@ class _UserListScreenState extends State<UserListScreen> {
     });
   }
 
+  // Generate PDF report of user list
+  Future<void> _generateUserReport() async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.MultiPage(
+        build:
+            (pw.Context context) => [
+              pw.Text(
+                'User Report',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 20),
+              pw.Table.fromTextArray(
+                headers: ['Emp No', 'Name', 'Email', 'Department'],
+                data:
+                    _filteredUsers.map((user) {
+                      return [
+                        user.emp_no.toString(),
+                        '${user.firstName} ${user.secondName}',
+                        user.email,
+                        user.department,
+                      ];
+                    }).toList(),
+              ),
+            ],
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("User List")),
+      appBar: AppBar(
+        title: Text("User List"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.picture_as_pdf),
+            tooltip: 'Generate Report',
+            onPressed: _filteredUsers.isEmpty ? null : _generateUserReport,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // Search Bar
@@ -106,7 +155,6 @@ class _UserListScreenState extends State<UserListScreen> {
                             subtitle: Text(user.email),
                             trailing: Icon(Icons.arrow_forward_ios),
                             onTap: () {
-                              // Navigate to user details screen
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

@@ -120,7 +120,7 @@ class UserService {
           "Annual": leaveData["Annual"],
           "Sick": leaveData["Sick"],
           "Maternity": leaveData["Maternity"],
-          "Paternity": leaveData["Paternity"], // Case-sensitive fix
+          "paternity": leaveData["paternity"], // Case-sensitive fix
         };
       } else {
         throw Exception("Status code error: ${response.statusCode}");

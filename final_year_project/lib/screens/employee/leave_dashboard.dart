@@ -1,6 +1,9 @@
+import 'package:final_year_project/screens/admin/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LeaveHomeScreen extends StatefulWidget {
   @override
@@ -8,51 +11,67 @@ class LeaveHomeScreen extends StatefulWidget {
 }
 
 class _LeaveHomeScreenState extends State<LeaveHomeScreen> {
-  Map<String, int> leaveBalances = {};
-  Map<String, int> leaveStats = {};
+  Map<String, int?> leaveBalances = {
+    "Annual": 30,
+    "Sick": 14,
+    "Maternity": 90,
+    "paternity": 14,
+  };
+  String? empNo;
 
   @override
   void initState() {
     super.initState();
-    _fetchLeaveData();
+    _loadEmployeeData();
   }
 
-  Future<void> _fetchLeaveData() async {
-    String empNo = "PPP0002"; // Replace with dynamic employee number
-    try {
-      final balancesUrl =
-          "https://sanerylgloann.co.ke/EmployeeManagement/get_leave_balances.php?emp_no=$empNo";
-      final statsUrl =
-          "https://sanerylgloann.co.ke/EmployeeManagement/get_leave_stats.php?emp_no=$empNo";
+  Future<void> _loadEmployeeData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      empNo = prefs.getString("emp_no");
+    });
 
-      final balancesResponse = await http.get(Uri.parse(balancesUrl));
-      final statsResponse = await http.get(Uri.parse(statsUrl));
-
-      if (balancesResponse.statusCode == 200 &&
-          statsResponse.statusCode == 200) {
-        var balancesJson = jsonDecode(balancesResponse.body);
-        var statsJson = jsonDecode(statsResponse.body);
-
-        setState(() {
-          leaveBalances = {
-            "Annual": balancesJson["leave_balances"][0]["Annual"] ?? 0,
-            "Sick": balancesJson["leave_balances"][0]["Sick"] ?? 0,
-            "Maternity": balancesJson["leave_balances"][0]["Maternity"] ?? 0,
-            "Paternity": balancesJson["leave_balances"][0]["Paternity"] ?? 0,
-          };
-
-          leaveStats = {
-            "Pending": statsJson["leave_stats"]["Pending"] ?? 0,
-            "Approved": statsJson["leave_stats"]["Approved"] ?? 0,
-            "Rejected": statsJson["leave_stats"]["Rejected"] ?? 0,
-          };
-        });
-      } else {
-        throw Exception("Failed to fetch data from server");
-      }
-    } catch (e) {
-      print("Error fetching leave data: $e");
+    if (empNo != null) {
+      _fetchLeaveBalances(empNo!);
     }
+  }
+
+  Future<void> _fetchLeaveBalances(String empNo) async {
+    try {
+      UserService userService = UserService();
+
+      // Fetch the leave balances
+      Map<String, int?> balances = await userService.getLeaveBalances(empNo);
+
+      // Update the state with the fetched leave balances
+      setState(() {
+        leaveBalances = balances;
+      });
+    } catch (e) {
+      // Handle any errors that occur during the API request
+      print("Error fetching leave balances: $e");
+      _showErrorS("Failed to load leave balances");
+    }
+  }
+
+  void _showErrorS(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Error"),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -79,8 +98,7 @@ class _LeaveHomeScreenState extends State<LeaveHomeScreen> {
               ),
               SizedBox(height: 10),
 
-              _buildStatsGrid(),
-
+              // _buildStatsGrid(),
               SizedBox(height: 20),
 
               Text(
@@ -117,7 +135,7 @@ class _LeaveHomeScreenState extends State<LeaveHomeScreen> {
   }
 
   // 🔹 Grid for Quick Stats
-  Widget _buildStatsGrid() {
+  /* Widget _buildStatsGrid() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -141,7 +159,7 @@ class _LeaveHomeScreenState extends State<LeaveHomeScreen> {
         ),
       ],
     );
-  }
+  }*/
 
   // 🔹 Grid for Leave Balances
   Widget _buildBalancesGrid() {
@@ -168,7 +186,7 @@ class _LeaveHomeScreenState extends State<LeaveHomeScreen> {
         ),
         _smallStatCard(
           "Paternity",
-          leaveBalances["Paternity"] ?? 0,
+          leaveBalances["paternity"] ?? 0,
           Colors.cyan.shade700,
           Icons.family_restroom,
         ),

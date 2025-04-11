@@ -1,12 +1,18 @@
-import 'package:final_year_project/screens/leave_management/update_leave.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+//import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+//import 'package:google_fonts/google_fonts.dart' as gf;
 import 'package:printing/printing.dart';
-import 'dart:io';
+
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart'; // for kIsWeb
+import 'package:share_plus/share_plus.dart';
+import 'update_leave.dart';
 
 class AdminLeaveRequestsPage extends StatefulWidget {
   @override
@@ -23,11 +29,21 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
   String _status = "";
   String _department = "";
 
-  // Fetch leave requests
+  @override
+  void initState() {
+    super.initState();
+    _fetchLeaveRequests();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _fetchLeaveRequests() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final url = Uri.parse(
       'https://sanerylgloann.co.ke/EmployeeManagement/display_leave_admin.php?'
@@ -36,31 +52,18 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
 
     try {
       final response = await http.get(url);
+      final data = json.decode(response.body);
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-
-        if (data['success'] == false) {
-          throw Exception('Error from API: ${data['message']}');
-        }
-
-        final List<dynamic> fetchedRequests = List.from(data['data']);
+      if (response.statusCode == 200 && data['success'] == true) {
         setState(() {
-          _leaveRequests = fetchedRequests;
-          _filteredRequests = List.from(_leaveRequests);
-          _isLoading = false;
+          _leaveRequests = data['data'];
+          _filteredRequests = _leaveRequests;
         });
-      } else {
-        setState(() {
-          _isLoading = false;
-        });
-        throw Exception('Failed to load data: ${response.statusCode}');
       }
     } catch (error) {
-      setState(() {
-        _isLoading = false;
-      });
-      print('Error: $error');
+      print('Error fetching leave requests: $error');
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -69,10 +72,9 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
       _searchQuery = _searchController.text.toLowerCase();
       _filteredRequests =
           _leaveRequests.where((request) {
-            final fullName = request['fullname'].toLowerCase();
-            final department = request['department'].toLowerCase();
-            return fullName.contains(_searchQuery) ||
-                department.contains(_searchQuery);
+            final name = request['fullname'].toLowerCase();
+            final dept = request['department'].toLowerCase();
+            return name.contains(_searchQuery) || dept.contains(_searchQuery);
           }).toList();
     });
   }
@@ -90,71 +92,75 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
     }
   }
 
-  Future<void> _generatePdfReport() async {
+  Future<Uint8List> _generatePdf() async {
     final pdf = pw.Document();
 
+    final font = await PdfGoogleFonts.nunitoRegular();
+    final boldFont = await PdfGoogleFonts.nunitoExtraBold();
+
     pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        build:
-            (pw.Context context) => [
-              pw.Header(
-                level: 0,
-                child: pw.Text(
-                  'Leave Requests Report',
-                  style: pw.TextStyle(
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
+      pw.Page(
+        build: (context) {
+          return pw.Column(
+            children: [
+              pw.Text(
+                'Leave Requests Report',
+                style: pw.TextStyle(font: boldFont, fontSize: 24),
               ),
-              if (_status.isNotEmpty || _department.isNotEmpty)
-                pw.Paragraph(
-                  text:
-                      'Filters - Status: ${_status.isEmpty ? "All" : _status}, Department: ${_department.isEmpty ? "All" : _department}',
-                ),
+              pw.SizedBox(height: 16),
               pw.Table.fromTextArray(
-                headers: ['Name', 'Department', 'Type', 'From', 'To', 'Status'],
+                headers: [
+                  'Name',
+                  'Department',
+                  'Leave Type',
+                  'Start',
+                  'End',
+                  'Status',
+                ],
                 data:
-                    _filteredRequests.map((leave) {
+                    _filteredRequests.map((req) {
                       return [
-                        leave['fullname'],
-                        leave['department'],
-                        leave['leave_type'],
-                        leave['start_date'],
-                        leave['end_date'],
-                        leave['status'],
+                        req['fullname'],
+                        req['department'],
+                        req['leave_type'],
+                        req['start_date'],
+                        req['end_date'],
+                        req['status'],
                       ];
                     }).toList(),
+                headerStyle: pw.TextStyle(font: boldFont),
+                cellStyle: pw.TextStyle(font: font),
+                border: pw.TableBorder.all(),
               ),
             ],
+          );
+        },
       ),
     );
 
-    try {
-      final output = await getTemporaryDirectory();
-      final file = File("${output.path}/leave_report.pdf");
-      await file.writeAsBytes(await pdf.save());
+    return pdf.save();
+  }
 
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save(),
-      );
-    } catch (e) {
-      print("Error generating PDF: $e");
+  void _previewPdf() async {
+    final pdfData = await _generatePdf();
+    await Printing.layoutPdf(onLayout: (_) => pdfData);
+  }
+
+  void _sharePdf() async {
+    final pdfData = await _generatePdf();
+
+    if (kIsWeb) {
+      // Web doesn't support Share
+      await Printing.sharePdf(bytes: pdfData, filename: 'leave_report.pdf');
+    } else {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/leave_report.pdf');
+      await file.writeAsBytes(pdfData);
+
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Here is the leave report PDF.');
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchLeaveRequests();
-    _searchController.addListener(_onSearchChanged);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   @override
@@ -163,12 +169,23 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
       appBar: AppBar(
         title: Text('Leave Requests'),
         backgroundColor: Colors.blueAccent,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.picture_as_pdf),
+            onPressed: _previewPdf,
+            tooltip: 'Preview PDF',
+          ),
+          IconButton(
+            icon: Icon(Icons.share),
+            onPressed: _sharePdf,
+            tooltip: 'Share PDF',
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            // Search
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
@@ -178,23 +195,23 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
               ),
             ),
             SizedBox(height: 10),
-
-            // Filters
             Row(
               children: [
                 DropdownButton<String>(
                   value: _department.isEmpty ? null : _department,
                   hint: Text("Select Department"),
                   items:
-                      ['HR', 'IT', 'Finance', 'Admin'].map((department) {
-                        return DropdownMenuItem<String>(
-                          value: department,
-                          child: Text(department),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
+                      ['HR', 'IT', 'Finance', 'Admin']
+                          .map(
+                            (dept) => DropdownMenuItem(
+                              child: Text(dept),
+                              value: dept,
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (val) {
                     setState(() {
-                      _department = value!;
+                      _department = val!;
                       _fetchLeaveRequests();
                     });
                   },
@@ -204,15 +221,17 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
                   value: _status.isEmpty ? null : _status,
                   hint: Text("Select Status"),
                   items:
-                      ['Pending', 'Approved', 'Rejected'].map((status) {
-                        return DropdownMenuItem<String>(
-                          value: status,
-                          child: Text(status),
-                        );
-                      }).toList(),
-                  onChanged: (value) {
+                      ['Pending', 'Approved', 'Rejected']
+                          .map(
+                            (stat) => DropdownMenuItem(
+                              child: Text(stat),
+                              value: stat,
+                            ),
+                          )
+                          .toList(),
+                  onChanged: (val) {
                     setState(() {
-                      _status = value!;
+                      _status = val!;
                       _fetchLeaveRequests();
                     });
                   },
@@ -220,20 +239,6 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
               ],
             ),
             SizedBox(height: 10),
-
-            // PDF Button
-            ElevatedButton.icon(
-              icon: Icon(Icons.picture_as_pdf),
-              label: Text("Generate Report"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              onPressed: () => _generatePdfReport(),
-            ),
-            SizedBox(height: 10),
-
-            // Leave List
             Expanded(
               child:
                   _isLoading
@@ -250,30 +255,22 @@ class _AdminLeaveRequestsPageState extends State<AdminLeaveRequestsPage> {
                                 context,
                                 MaterialPageRoute(
                                   builder:
-                                      (context) => LeaveRequestDetailPage(
+                                      (_) => LeaveRequestDetailPage(
                                         leaveId: req['id'],
                                       ),
                                 ),
                               );
                             },
                             child: Card(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              elevation: 2,
                               child: ListTile(
-                                leading: Icon(
-                                  Icons.person,
-                                  color: Colors.blueAccent,
-                                ),
                                 title: Text(req['fullname']),
                                 subtitle: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text("Dept: ${req['department']}"),
-                                    Text("Type: ${req['leave_type']}"),
+                                    Text('Dept: ${req['department']}'),
+                                    Text('Type: ${req['leave_type']}'),
                                     Text(
-                                      "Date: ${req['start_date']} - ${req['end_date']}",
+                                      'Date: ${req['start_date']} - ${req['end_date']}',
                                     ),
                                   ],
                                 ),
