@@ -24,6 +24,7 @@ class _EditTrainingScreenState extends State<EditTrainingScreen> {
   late Future<void> _employeesFuture;
   List<Map<String, String>> employees = [];
   String? _selectedEmployee;
+  List<String> selectedParticipants = [];
 
   @override
   void initState() {
@@ -73,18 +74,31 @@ class _EditTrainingScreenState extends State<EditTrainingScreen> {
   }
 
   void _saveTraining() async {
+    // Combine old and new participants
+    List<String> allParticipants = [
+      ..._participants.map(
+        (item) => item.split('|')[1].trim(),
+      ), // Extracted numeric parts as list
+      ...selectedParticipants.where(
+        (e) => !_participants.contains(e),
+      ), // Add non-duplicate selected participants
+    ];
+
+    print('All participants to save: $allParticipants'); // Debug line
+
     Training updatedTraining = Training(
       title: _titleController.text,
       description: _descriptionController.text,
       startDate: _startDateController.text,
       endDate: _endDateController.text,
       location: _locationController.text,
-      participants: _participants,
-      trainingId: widget.training.trainingId, // 🟢 Use existing trainingId
+      participants: allParticipants, // Use combined list here
+      trainingId: widget.training.trainingId,
       duration: _durationController.text,
     );
 
     bool success = await ApiTrainingService.updateTraining(updatedTraining);
+    print(allParticipants);
     if (success) {
       ScaffoldMessenger.of(
         context,
@@ -199,6 +213,7 @@ class _EditTrainingScreenState extends State<EditTrainingScreen> {
                   itemBuilder: (context, index) {
                     return ListTile(
                       title: Text(_participants[index]),
+
                       trailing: IconButton(
                         icon: Icon(Icons.remove, color: Colors.red),
                         onPressed: () => _removeParticipant(index),
@@ -208,56 +223,24 @@ class _EditTrainingScreenState extends State<EditTrainingScreen> {
                 ),
               if (_participants.isEmpty) Text("No participants added yet"),
               SizedBox(height: 10),
-              Text(
-                "Select Employees to Add as Participants:",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              FutureBuilder(
-                future: _employeesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
+              Text("Select Participants"),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: null,
+                items:
+                    employees.map((employee) {
+                      return DropdownMenuItem<String>(
+                        value: employee["emp_no"],
+                        child: Text(employee["name"]!),
+                      );
+                    }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null &&
+                      !selectedParticipants.contains(newValue)) {
+                    setState(() {
+                      selectedParticipants.add(newValue);
+                    });
                   }
-                  if (snapshot.hasError) {
-                    return Center(child: Text("Error fetching employees"));
-                  }
-
-                  return Column(
-                    children: [
-                      DropdownButtonFormField<String>(
-                        isExpanded: true,
-                        value: _selectedEmployee,
-                        decoration: InputDecoration(
-                          labelText: 'Select Participant',
-                        ),
-                        items:
-                            employees.map((employee) {
-                              return DropdownMenuItem<String>(
-                                value: employee["emp_no"],
-                                child: Text(employee["name"]!),
-                              );
-                            }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _selectedEmployee = newValue;
-                          });
-                        },
-                      ),
-                      SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_selectedEmployee != null &&
-                              !_participants.contains(_selectedEmployee)) {
-                            var employee = employees.firstWhere(
-                              (emp) => emp["emp_no"] == _selectedEmployee,
-                            );
-                            _addParticipant(employee["name"]!);
-                          }
-                        },
-                        child: Text("Add Participant"),
-                      ),
-                    ],
-                  );
                 },
               ),
               SizedBox(height: 20),

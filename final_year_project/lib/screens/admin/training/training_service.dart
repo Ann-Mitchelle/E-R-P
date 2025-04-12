@@ -74,29 +74,41 @@ class ApiTrainingService {
   //} }
   static Future<bool> updateTraining(Training training) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/update_training.php?id=${training.trainingId}'),
-        body: {
-          'training_id': training.trainingId, // 🟢 Ensure correct training ID
-          'title': training.title,
-          'description': training.description,
-          'start_date': training.startDate,
-          'end_date': training.endDate,
-          'location': training.location,
-          'duration': training.duration,
-          'participants': jsonEncode(training.participants),
-        },
+      final uri = Uri.parse(
+        '$baseUrl/update_training.php?id=${training.trainingId}',
       );
+
+      // Create the body data
+      final body = {
+        'training_id': training.trainingId,
+        'title': training.title,
+        'description': training.description,
+        'start_date': training.startDate,
+        'end_date': training.endDate,
+        'location': training.location,
+        'duration': training.duration,
+        'participants': jsonEncode(training.participants), // emp_no's, not names
+      };
+
+      print('Sending to $uri');
+      print('Body: $body');
+
+      // Make the request
+      final response = await http.post(uri, body: body);
+
+      print('Status Code: ${response.statusCode}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         var responseData = jsonDecode(response.body);
         if (responseData['success']) {
           return true;
         } else {
-          print(responseData['error']);
+          print("Server Error: ${responseData['error']}");
           return false;
         }
       } else {
+        print("Non-200 Response: ${response.statusCode}");
         return false;
       }
     } catch (e) {

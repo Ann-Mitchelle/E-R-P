@@ -101,8 +101,12 @@ class _TrainingDetailScreenState extends State<TrainingDetailScreen> {
                     height: 100,
                     child: ListView.builder(
                       itemBuilder:
-                          (context, index) =>
-                              Text(training.participants[index]),
+                          (context, index) => Text(
+                            training.participants[index].substring(
+                              0,
+                              training.participants[index].indexOf('|'),
+                            ),
+                          ),
                       itemCount: training.participants.length,
                     ),
                   ),

@@ -286,27 +286,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> {
               SizedBox(height: 20),
 
               // Dependants Section
-              Text(
-                "Dependants",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              ...dependants.map(
-                (d) => ListTile(
-                  title: Text("${d.name} - ${d.relation}"),
-                  subtitle: Text(d.phoneNumber),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _removeDependant(dependants.indexOf(d)),
-                  ),
-                ),
-              ),
-
-              ElevatedButton.icon(
-                onPressed: _showDependantDialog,
-                icon: Icon(Icons.add),
-                label: Text("Add Dependant"),
-              ),
-
               SizedBox(height: 20),
 
               _isLoading

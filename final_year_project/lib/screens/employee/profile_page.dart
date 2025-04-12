@@ -1,3 +1,4 @@
+import 'package:final_year_project/screens/admin/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -7,7 +8,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String? profileImage, empNo, fullName, email, phoneNumber, department, role;
+  String? image, empNo, fullName, email, phoneNumber, department, role;
 
   @override
   void initState() {
@@ -21,8 +22,9 @@ class _ProfilePageState extends State<ProfilePage> {
       empNo = prefs.getString('emp_no') ?? '';
       String firstName = prefs.getString('firstname') ?? '';
       String secondName = prefs.getString('secondname') ?? '';
-      profileImage =
-          prefs.getString('profile_image') ?? null; // ✅ Load profile image
+      image = prefs.getString('image') ?? '';
+      // profileImage =
+      // prefs.getString('profile_image') ?? null; // ✅ Load profile image
 
       fullName = "$firstName $secondName"; // Concatenate first and last name
       email = prefs.getString('email') ?? 'Unknown';
@@ -65,22 +67,9 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               CircleAvatar(
                 radius: 50,
-                backgroundColor: Colors.orange,
-                child:
-                    profileImage != null && profileImage!.isNotEmpty
-                        ? ClipOval(
-                          child: Image.network(
-                            profileImage!,
-                            fit: BoxFit.cover,
-                            width: 100,
-                            height: 100,
-                          ),
-                        )
-                        : Icon(
-                          Icons.person,
-                          size: 50,
-                          color: Colors.white,
-                        ), // ✅ Default person icon
+                backgroundImage: NetworkImage(
+                  "https://sanerylgloann.co.ke/EmployeeManagement/user_images/$image",
+                ),
               ),
             ],
           ),

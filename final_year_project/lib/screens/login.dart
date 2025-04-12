@@ -61,7 +61,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString("phonenumber", data["user"]["phonenumber"]);
         await prefs.setString("department", data["user"]["department"]);
         await prefs.setString("role", data["user"]["role"]);
-
+        await prefs.setString("profile_picture", data["user"]["image"]);
+//print("image url $image");
         if (_rememberMe) {
           await prefs.setBool("rememberMe", true);
         } else {
@@ -75,6 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(context, "/admin_dashboard");
         } else {
           Navigator.pushReplacementNamed(context, '/employee_dashboard');
+         
         }
       } else {
         _showSnackbar(data["message"]);

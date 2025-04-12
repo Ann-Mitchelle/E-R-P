@@ -49,6 +49,7 @@ class _EditUserScreenState extends State<EditUserScreen> {
     _statusController = TextEditingController(text: widget.user.status);
     _selectedDepartment = widget.user.department;
     _dependants = List.from(widget.user.dependants);
+    
 
     // Debugging print statements
     print(
