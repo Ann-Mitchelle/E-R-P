@@ -9,10 +9,12 @@ import 'package:final_year_project/screens/employee/profile_page.dart';
 import 'package:final_year_project/screens/employee/show_training.dart';
 import 'package:final_year_project/screens/employee/view_job_applications.dart';
 import 'package:final_year_project/screens/employee/view_jobs_employee.dart';
+import 'package:final_year_project/screens/forgot_password.dart';
 import 'package:final_year_project/screens/jobs/create_jobs.dart';
 import 'package:final_year_project/screens/jobs/view_job_applications_admin.dart';
 import 'package:final_year_project/screens/jobs/view_jobs.dart';
 import 'package:final_year_project/screens/leave_management/view_requests_admin.dart';
+import 'package:final_year_project/screens/reset_password.dart';
 import 'package:flutter/material.dart';
 import 'package:final_year_project/screens/login.dart';
 
@@ -51,6 +53,11 @@ class MyApp extends StatelessWidget {
         "/profile": (context) => ProfilePage(), // Profile Screen
         '/adminLeaveRequests': (context) => AdminLeaveRequestsPage(),
         "/jobApplications": (context) => JobApplicationsPage(),
+        "/forgot_password": (context) => ForgotPasswordScreen(),
+        "/reset_password":
+            (context) => ResetPasswordScreen(
+              email: ModalRoute.of(context)?.settings.arguments as String,
+            ),
       },
     );
   }

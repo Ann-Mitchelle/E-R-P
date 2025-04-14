@@ -91,6 +91,10 @@ class _LoginScreenState extends State<LoginScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+   void _navigateTo(BuildContext context, String route) {
+    Navigator.pushNamed(context, route);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    // TODO: Implement Forgot Password
+                    _navigateTo(context, "/forgot_password");
                   },
                   child: const Text(
                     "Forgot Password?",

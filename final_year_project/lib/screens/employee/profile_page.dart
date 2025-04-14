@@ -1,4 +1,3 @@
-import 'package:final_year_project/screens/admin/user_model.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -22,11 +21,14 @@ class _ProfilePageState extends State<ProfilePage> {
       empNo = prefs.getString('emp_no') ?? '';
       String firstName = prefs.getString('firstname') ?? '';
       String secondName = prefs.getString('secondname') ?? '';
-      image = prefs.getString('image') ?? '';
-      // profileImage =
-      // prefs.getString('profile_image') ?? null; // ✅ Load profile image
+      image = prefs.getString('profile_picture') ?? '';
 
-      fullName = "$firstName $secondName"; // Concatenate first and last name
+      // 🔍 Debug: print full image URL
+      String imageUrl =
+          "https://sanerylgloann.co.ke/EmployeeManagement/user_images/$image";
+      print("Image URL: $imageUrl");
+
+      fullName = "$firstName $secondName";
       email = prefs.getString('email') ?? 'Unknown';
       phoneNumber = prefs.getString('phonenumber') ?? 'Unknown';
       department = prefs.getString('department') ?? 'Unknown';
@@ -42,6 +44,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    String imageUrl =
+        "https://sanerylgloann.co.ke/EmployeeManagement/user_images/PPP0002_1743171945.png";
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -67,9 +72,11 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               CircleAvatar(
                 radius: 50,
-                backgroundImage: NetworkImage(
-                  "https://sanerylgloann.co.ke/EmployeeManagement/user_images/$image",
-                ),
+                backgroundImage:
+                    (image != null && image!.isNotEmpty)
+                        ? NetworkImage(imageUrl)
+                        : AssetImage('assets/images/default.png')
+                            as ImageProvider,
               ),
             ],
           ),

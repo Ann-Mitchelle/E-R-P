@@ -4,6 +4,7 @@ import 'package:final_year_project/screens/admin/user_management.dart';
 import 'package:final_year_project/screens/jobs/job_dashboard.dart';
 import 'package:final_year_project/screens/leave_management/leave_dashboard.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -14,6 +15,8 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
+  String? fullname = '';
+  String? image = '';
 
   final List<Widget> _screens = [
     HomeScreen(), // Home Page
@@ -25,15 +28,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
     // LeaveManagementScreen(),
     // NotificationsScreen(),
   ];
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData(); // ✅ Load profile data when the widget initializes
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      // Load profile data when navigating
     });
   }
 
   void _navigateTo(BuildContext context, String route) {
     Navigator.pushNamed(context, route);
+  }
+
+  Future<void> _loadProfileData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      String firstName = prefs.getString('firstname') ?? '';
+      String secondName = prefs.getString('secondname') ?? '';
+      image = prefs.getString('profile_picture') ?? '';
+
+      // 🔍 Debug: print full image URL
+      String imageUrl =
+          "https://sanerylgloann.co.ke/EmployeeManagement/user_images/$image";
+      print("Image URL: $imageUrl");
+
+      fullname = "$firstName $secondName";
+    });
   }
 
   @override
@@ -48,10 +73,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             _navigateTo(context, "/profile"); // Navigate to Profile
           },
         ),
-        title: const Row(
+        title: Row(
           children: [
             Text(
-              "Welcome, Admin ",
+              "Welcome, $fullname",
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
