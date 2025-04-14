@@ -29,32 +29,20 @@ class _LeaveRequestDetailPageState extends State<LeaveRequestDetailPage> {
     _getLeaveDetails();
   }
 
-  // Fetch leave request details from the backend
   Future<void> _getLeaveDetails() async {
     try {
-      print(
-        'Fetching leave details for leaveId: ${widget.leaveId.toString()}',
-      ); // Debug: Print leaveId
-
-      // Fetch the details using the leaveId
       final response = await http.get(
         Uri.parse(
-          'https://sanerylgloann.co.ke/EmployeeManagement/display_specific_leave.php?id=${widget.leaveId.toString()}',
+          'https://sanerylgloann.co.ke/EmployeeManagement/display_specific_leave.php?id=${widget.leaveId}',
         ),
       );
 
-      print(
-        'Response Status: ${response.statusCode}',
-      ); // Debug: Print response status code
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('Response Body: $data'); // Debug: Print response body
 
         if (data['success']) {
           setState(() {
-            status =
-                data['data']['status'].toString(); // Convert status to string
+            status = data['data']['status'].toString();
             department = data['data']['department'];
             fullname = data['data']['fullname'];
             leaveType = data['data']['leave_type'];
@@ -62,51 +50,36 @@ class _LeaveRequestDetailPageState extends State<LeaveRequestDetailPage> {
             endDate = data['data']['end_date'];
             duration = data['data']['duration'].toString();
             notes = data['data']['notes'];
-            isLoading =
-                false; // Set loading state to false after data is loaded
-            print('Leave Details Loaded: $fullname, $department, $leaveType');
+            isLoading = false;
           });
         } else {
-          // Handle the error response
-          print('Error: ${data['message']}'); // Debug: Print error message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to load leave details')),
           );
           setState(() {
-            isLoading = false; // Set loading state to false if there's an error
+            isLoading = false;
           });
         }
       } else {
-        // Handle non-200 status codes
-        print(
-          'Failed to load data, status code: ${response.statusCode}',
-        ); // Debug: Print failed status code
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Failed to load leave details')));
         setState(() {
-          isLoading = false; // Set loading state to false if the request failed
+          isLoading = false;
         });
       }
     } catch (e) {
-      // Handle exceptions
-      print('Error: $e'); // Debug: Print the exception
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
       setState(() {
-        isLoading = false; // Set loading state to false if there's an exception
+        isLoading = false;
       });
     }
   }
 
-  // Approve or Reject the leave request
   Future<void> _updateLeaveStatus(String newStatus) async {
     try {
-      print(
-        'Updating leave request status to: $newStatus',
-      ); // Debug: Print the new status
-
       final response = await http.post(
         Uri.parse(
           'https://sanerylgloann.co.ke/EmployeeManagement/update_leave.php',
@@ -118,17 +91,12 @@ class _LeaveRequestDetailPageState extends State<LeaveRequestDetailPage> {
         },
       );
 
-      print(
-        'Response Status: ${response.statusCode}',
-      ); // Debug: Print response status code
       final data = json.decode(response.body);
-      print('Response Body: $data'); // Debug: Print response body
 
       if (data['success'] == 1) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Leave request updated successfully')),
         );
-        // Optionally, reload the leave details after updating
         _getLeaveDetails();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -136,7 +104,6 @@ class _LeaveRequestDetailPageState extends State<LeaveRequestDetailPage> {
         );
       }
     } catch (e) {
-      print('Error: $e'); // Debug: Print the exception
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -147,14 +114,12 @@ class _LeaveRequestDetailPageState extends State<LeaveRequestDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Leave Request Detail')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child:
-            isLoading
-                ? Center(
-                  child: CircularProgressIndicator(),
-                ) // Show loading indicator
-                : Column(
+      body:
+          isLoading
+              ? Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -200,19 +165,30 @@ class _LeaveRequestDetailPageState extends State<LeaveRequestDetailPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ElevatedButton(
-                          onPressed: () => _updateLeaveStatus('Approved'),
-                          child: Text('Approve'),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _updateLeaveStatus('Approved'),
+                            child: Text('Approve'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                            ),
+                          ),
                         ),
-                        ElevatedButton(
-                          onPressed: () => _updateLeaveStatus('Rejected'),
-                          child: Text('Reject'),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _updateLeaveStatus('Rejected'),
+                            child: Text('Reject'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
-      ),
+              ),
     );
   }
 }

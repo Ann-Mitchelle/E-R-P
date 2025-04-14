@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     var url = Uri.parse(
       "https://sanerylgloann.co.ke/EmployeeManagement/login.php",
-    ); // Replace with your actual API URL
+    );
     var response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString("department", data["user"]["department"]);
         await prefs.setString("role", data["user"]["role"]);
         await prefs.setString("profile_picture", data["user"]["image"]);
-//print("image url $image");
+
         if (_rememberMe) {
           await prefs.setBool("rememberMe", true);
         } else {
@@ -71,12 +71,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
         _showSnackbar("Login Successful");
 
-        // Navigate to respective dashboard based on role
         if (data["user"]["role"] == "admin") {
           Navigator.pushReplacementNamed(context, "/admin_dashboard");
         } else {
           Navigator.pushReplacementNamed(context, '/employee_dashboard');
-         
         }
       } else {
         _showSnackbar(data["message"]);
@@ -91,123 +89,132 @@ class _LoginScreenState extends State<LoginScreen> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
-   void _navigateTo(BuildContext context, String route) {
+
+  void _navigateTo(BuildContext context, String route) {
     Navigator.pushNamed(context, route);
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Welcome to StaffEase"),
+        title: const Text("Welcome to StaffEase"),
         centerTitle: true,
         backgroundColor: Colors.blue,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo
-            Center(
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/ic_launcher.png',
-                  height: 150,
-                  width: 150,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Welcome Text
-            const Text(
-              "Welcome Back!",
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Subtitle Text
-            const Text(
-              "Please login to your account",
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
-
-            // Email Input
-            CustomTextField(
-              controller: _emailController,
-              hintText: "Enter your email",
-              icon: Icons.email,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 15),
-
-            // Password Input
-            CustomTextField(
-              controller: _passwordController,
-              hintText: "Enter your password",
-              icon: Icons.lock,
-              obscureText: _obscureText,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureText ? Icons.visibility : Icons.visibility_off,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureText = !_obscureText;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Remember Me & Forgot Password Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _rememberMe,
-                      onChanged: (value) {
-                        setState(() {
-                          _rememberMe = value ?? false;
-                        });
-                      },
-                      activeColor: Colors.blue,
-                    ),
-                    const Text("Remember Me", style: TextStyle(fontSize: 14)),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: () {
-                    _navigateTo(context, "/forgot_password");
-                  },
-                  child: const Text(
-                    "Forgot Password?",
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
+                const SizedBox(height: 30),
+
+                // Logo
+                Center(
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/ic_launcher.png',
+                      height: 150,
+                      width: 150,
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // Welcome Text
+                const Text(
+                  "Welcome Back!",
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                const Text(
+                  "Please login to your account",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 20),
+
+                // Email
+                CustomTextField(
+                  controller: _emailController,
+                  hintText: "Enter your email",
+                  icon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 15),
+
+                // Password
+                CustomTextField(
+                  controller: _passwordController,
+                  hintText: "Enter your password",
+                  icon: Icons.lock,
+                  obscureText: _obscureText,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureText ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureText = !_obscureText;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // Remember Me & Forgot Password
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _rememberMe,
+                          onChanged: (value) {
+                            setState(() {
+                              _rememberMe = value ?? false;
+                            });
+                          },
+                          activeColor: Colors.blue,
+                        ),
+                        const Text(
+                          "Remember Me",
+                          style: TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        _navigateTo(context, "/forgot_password");
+                      },
+                      child: const Text(
+                        "Forgot Password?",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Login Button
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : CustomButton(text: "Login", onPressed: _login),
+
+                const SizedBox(height: 30),
               ],
             ),
-            const SizedBox(height: 20),
-
-            // Login Button
-            _isLoading
-                ? CircularProgressIndicator()
-                : CustomButton(text: "Login", onPressed: _login),
-          ],
+          ),
         ),
       ),
     );
